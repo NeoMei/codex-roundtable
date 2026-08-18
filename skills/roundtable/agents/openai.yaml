@@ -1,0 +1,7 @@
+interface:
+  display_name: "Roundtable"
+  short_description: "Configure expert agents, run an ordered discussion, and export minutes."
+  default_prompt: "Start a roundtable discussion and guide me through configuring each member."
+
+policy:
+  allow_implicit_invocation: true
