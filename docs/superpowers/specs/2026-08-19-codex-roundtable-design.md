@@ -2,7 +2,8 @@
 
 ## Status
 
-Approved for planning on 2026-08-19.
+Revised after design review on 2026-08-19. Pending final approval for
+implementation planning.
 
 ## Goal
 
@@ -44,6 +45,8 @@ codex-roundtable/
 ├── docs/
 │   └── superpowers/
 │       └── specs/
+├── tests/
+│   └── acceptance.md
 ├── README.md
 └── LICENSE
 ```
@@ -70,8 +73,11 @@ points to `./skills/`. It contains valid semver and presentation metadata but no
 - loads the setup reference while configuring the meeting;
 - authorizes and requires Codex-native subagent delegation for each configured
   member;
-- runs members in roster order and reuses the same subagent in later rounds;
+- runs members in roster order and prefers to reuse the same subagent in later
+  rounds when the runtime still exposes that agent thread;
 - loads the minutes reference only when summarizing or exporting;
+- constrains member agents to analysis and read-only investigation, leaving the
+  host as the only writer of meeting artifacts;
 - keeps ordinary, unrelated requests outside its trigger boundary.
 
 ### Setup wizard reference
@@ -115,37 +121,49 @@ text. The final roster contains between one and eight members. After every answe
 the skill echoes the accepted value so the user can detect mistakes immediately.
 The user confirms the complete roster before any subagent is started.
 
-When a structured input tool is available, the skill uses it for choices and
-short inputs. Otherwise it asks one concise plain-chat question at a time. The
-workflow must remain fully usable without cards.
+When a structured input tool is available and its option limit can represent the
+current choice set, the skill uses it for choices and short inputs. Otherwise it
+asks one concise plain-chat question at a time. The workflow must remain fully
+usable without cards, and it must not truncate a model list merely to fit a card.
 
 ### 3. Select models
 
-The wizard offers only model choices exposed by the current Codex runtime or
-agent-spawn tool. `Default (current task model)` is always available. The plugin
-does not embed a provider catalog because model availability differs by host and
-changes over time.
+The wizard offers only model identifiers explicitly accepted by the current
+agent-spawn tool when that tool exposes an enumerable model set. `Default (inherit
+the current task model)` is always available. The plugin does not embed a provider
+catalog because model availability differs by host and changes over time.
 
-If model enumeration is not available, the wizard offers the current model and
-allows a custom model identifier. A model identifier is not treated as validated
-until the member starts successfully.
+If the current surface does not expose an enumerable model set, the wizard offers
+only the default inherited model. It does not accept a free-form model identifier:
+an identifier outside the host tool schema may be rejected before an agent can
+start and therefore cannot be portably validated by a skills-only plugin.
 
 ### 4. Run a round
 
 Each member is represented by a real Codex subagent. In the first round, the main
-agent creates and waits for one member at a time, in roster order. Each member
-receives:
+agent creates and waits for one member at a time, in roster order. Sequential
+execution keeps the active concurrency requirement at one member regardless of
+roster size. A model override uses a self-contained member prompt and the smallest
+supported history fork so the member does not depend on inheriting the main task's
+entire transcript. Each member receives:
 
 - the original discussion topic;
 - its role and persona;
 - prior-round summaries and user interjections;
 - all earlier utterances from the current round;
-- an instruction to provide one focused roundtable contribution.
+- an instruction to provide one focused roundtable contribution;
+- an analysis-only contract: read-only investigation is allowed when needed, but
+  the member must not modify files, change external state, send messages, or take
+  other side-effecting actions.
 
-After a member completes, the main task presents the utterance as
-`[角色名]` followed by the text. Subagent activity may also remain inspectable in
-the Codex interface. The main agent does not paraphrase a member before the host
-summary.
+After a member completes, the main task emits an ordered progress/commentary
+update as `[角色名]` followed by the text when the current surface supports live
+updates. The member's subagent thread remains the authoritative inspectable source
+when the surface exposes subagent activity. At the end of the round, the main
+response includes an ordered transcript of all completed member contributions.
+The plugin does not promise a separate permanent main-task message for every
+member, because Codex may consolidate subagent results into one response. The main
+agent does not paraphrase a member before the host summary.
 
 ### 5. Summarize and continue
 
@@ -160,9 +178,11 @@ summary containing:
 - a recommended focus for the next round.
 
 The user then chooses `continue` or `terminate` and may add an opinion. Continuing
-reuses the existing member subagents through follow-up tasks so their role context
-is preserved. The follow-up also includes the canonical round summaries so the
-workflow remains understandable if a member's local context is compacted.
+prefers to reuse existing member subagents through follow-up tasks. If a member
+thread is unavailable or the host's agent-thread capacity prevents reuse, the
+skill creates a replacement member with the same self-contained role context. In
+both cases, the prompt includes the canonical round summaries so continuity does
+not depend on private subagent history.
 
 ### 6. Terminate and export
 
@@ -179,23 +199,25 @@ an appendix.
 
 ## Context and Recovery
 
-The Codex task is the primary session record. The main agent retains the roster,
-round summaries, user interjections, and subagent identifiers in task context.
-No hidden workspace state file is created in the first release.
+The Codex task is the primary session record. At the end of each round, the main
+response restates the canonical roster, effective model labels, round summaries,
+and user interjections needed to continue. No hidden workspace state file is
+created in the first release.
 
-If an existing subagent can no longer be continued after an app restart or runtime
-reset, the skill reconstructs a new subagent with the same role, persona, selected
-model, topic, and prior summaries. It tells the user that the member was rebuilt.
-This restores semantic continuity but does not claim byte-for-byte recovery of
-the previous agent's private context.
+Within the same live task, the skill may reconstruct an unavailable subagent with
+the same role, persona, effective model, topic, and prior summaries, and tells the
+user that the member was rebuilt. Recovery after an app restart or runtime reset
+is best-effort and is not a v1 acceptance requirement. The plugin does not claim
+recovery of an in-flight request or a previous agent's private context.
 
 ## Failure Handling
 
 ### Model unavailable
 
-If a selected model cannot start, retry the member once using the current task
-model. Announce the fallback and record the actual model label in subsequent
-summaries and final minutes.
+If a selected model is accepted by the tool schema but cannot start, retry the
+member once with the model override omitted so the host resolves its inherited
+default. Announce the fallback. Record the effective model when the runtime
+reports it; otherwise record `inherited default` rather than guessing a model ID.
 
 ### Member failure
 
@@ -224,6 +246,12 @@ an output path that was not verified.
 ## Security and Permission Boundaries
 
 - Subagents inherit the parent task's permission mode.
+- Every member prompt states that the member is analysis-only: it may use
+  read-only investigation when needed, but it must not write files, change
+  external state, send messages, or perform destructive actions.
+- This is an instruction-level boundary, not a separate hard sandbox. The plugin
+  must not claim stronger isolation than the host provides.
+- The main host is the only agent allowed to write the meeting-minutes artifact.
 - A member receives only the current customer/workspace context needed for the
   discussion.
 - The skill does not send data to an external service beyond the models and tools
@@ -233,6 +261,35 @@ an output path that was not verified.
 - File output stays inside the current workspace unless the user explicitly
   provides another destination.
 
+## Installation and Legacy Migration
+
+The existing DSH-oriented standalone skill uses the same `roundtable` name and is
+not compatible with the Codex-native plugin. Before local installation, the README
+and acceptance checklist require a preflight check for an existing
+`~/.agents/skills/roundtable/SKILL.md` or another visible skill with the same name.
+
+If a legacy skill is found:
+
+- identify it by its references to DSH-only tools;
+- ask the user to disable it through Codex skill configuration or move it out of
+  the discovered skill roots;
+- never overwrite, delete, or edit the legacy file silently;
+- verify in a fresh task that only the intended Codex-native `roundtable` skill is
+  selected by `$roundtable`.
+
+The Git repository root is the distributable plugin root, but the personal
+marketplace uses its conventional managed source location. Local testing therefore
+creates or refreshes a generated personal-marketplace copy at
+`~/plugins/roundtable` from the repository root; the marketplace entry points to
+that managed copy rather than directly to the development checkout. Updates use
+the plugin creator's cachebuster and reinstall flow instead of hand-editing
+marketplace metadata.
+
+The README documents the source-to-managed-copy installation command,
+refresh/reinstall flow, legacy-skill migration, and a fresh-task smoke test.
+Public marketplace submission remains separate from local development
+installation.
+
 ## Validation and Testing
 
 ### Structural validation
@@ -241,6 +298,13 @@ an output path that was not verified.
 - Validate the plugin root with the Codex plugin validator.
 - Confirm the manifest contains neither `mcpServers` nor `apps`.
 - Scan for unfinished scaffold placeholders.
+- Confirm the main skill and both references contain no executable calls to the
+  DSH-only tools.
+
+`tests/acceptance.md` is a manual, evidence-bearing checklist. Each run records the
+Codex surface, task identifier, date, effective model behavior, and observed
+result. The first release does not claim an automated harness for host-level
+subagent failures.
 
 ### Behavioral scenarios
 
@@ -249,33 +313,52 @@ Test the installed plugin in fresh Codex tasks with these scenarios:
 1. Trigger with `圆桌讨论` and no topic.
 2. Trigger with `$roundtable` and an inline topic.
 3. Accept a recommended role and edit its persona.
-4. Add a custom role and reach the eight-member limit.
-5. Select an available non-default model.
-6. Select an invalid model and verify fallback to the current model.
+4. Add a custom role and reach the logical eight-member limit while running only
+   one member at a time.
+5. On a host that exposes an explicit model enum, select an available non-default
+   model.
+6. On a host without an explicit model enum, verify that the wizard offers only
+   the inherited default and does not solicit a free-form identifier.
 7. Run a full round and verify fixed speaking order.
 8. Interject between members and verify propagation.
-9. Continue to a second round and verify member reuse.
-10. Simulate a member failure and exercise retry, skip, and terminate.
-11. Terminate and verify the Markdown file contents and reported path.
-12. Run on a surface without structured input cards and complete the plain-chat
+9. Continue to a second round and verify either member reuse or an explicitly
+   reported replacement with canonical context.
+10. Where the test host exposes a schema-valid but unavailable model, verify the
+    inherited-model retry. Otherwise record this branch as not applicable rather
+    than fabricating a failure.
+11. Interrupt or cancel a member run and exercise retry, skip, and terminate.
+12. Verify ordered live commentary when supported, inspectable member threads,
+    and the consolidated ordered transcript in the round response.
+13. Terminate and verify the Markdown file contents and reported path.
+14. Run on a surface without structured input cards and complete the plain-chat
     fallback.
+15. Run the legacy-skill preflight and verify that a duplicate skill is reported
+    without overwriting or deleting it.
 
 ### Acceptance criteria
 
 The implementation is accepted when:
 
 - it installs as a skills-only plugin in Codex;
+- the installation preflight detects a legacy same-name skill, and a fresh task
+  exposes only the intended Codex-native skill after the user resolves the
+  conflict;
 - both implicit Chinese trigger phrases and explicit `$roundtable` invocation
   activate the intended workflow;
 - its executable skill instructions contain no calls to the DSH-only
   `ask_user_question`, `roundtable`, `roundtable_models`, or `roundtable_title`
   tools;
-- each member is a real Codex subagent with the chosen persona and effective
-  model;
+- each member is a real Codex subagent with the chosen persona and either a
+  schema-exposed selected model or the inherited default;
+- member agents follow the analysis-only contract and the plugin does not claim a
+  hard isolation boundary;
 - speaking order, multi-round continuation, model fallback, and user
   interjections behave as specified;
+- every completed round includes an ordered transcript in the main response; no
+  acceptance criterion requires one permanent main-task message per member;
 - the exported minutes pass a format review and the output path exists;
-- validation and fresh-task installation tests pass.
+- validation and applicable fresh-task installation tests pass, with unsupported
+  host-specific failure branches recorded as not applicable.
 
 ## Release Strategy
 
