@@ -2,7 +2,7 @@
 
 ## Status
 
-Approved for implementation planning on 2026-08-19 after design review.
+Approved for implementation on 2026-08-19 after design review.
 
 ## Goal
 
