@@ -2,8 +2,7 @@
 
 ## Status
 
-Revised after design review on 2026-08-19. Pending final approval for
-implementation planning.
+Approved for implementation planning on 2026-08-19 after design review.
 
 ## Goal
 
