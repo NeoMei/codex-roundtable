@@ -34,6 +34,8 @@ Analysis-only contract for every member:
 
 Use the active subagent-spawn tool with a unique target name derived from the member ID.
 
+Normalize canonical member IDs to the active spawn tool grammar: replace hyphens with underscores (`member-1` -> `member_1`) and keep only lowercase letters, digits, and underscores.
+
 - For `model_mode: explicit`, pass only the exact schema-exposed model identifier and use no full-history fork; the self-contained prompt is the complete context.
 - For `model_mode: inherit`, omit the model override.
 - Wait for that member to finish before starting the next member.

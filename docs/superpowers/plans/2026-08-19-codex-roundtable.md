@@ -455,6 +455,8 @@ Analysis-only contract for every member:
 
 Use the active subagent-spawn tool with a unique target name derived from the member ID.
 
+Normalize canonical member IDs to the active spawn tool grammar: replace hyphens with underscores (`member-1` -> `member_1`) and keep only lowercase letters, digits, and underscores.
+
 - For `model_mode: explicit`, pass only the exact schema-exposed model identifier and use no full-history fork; the self-contained prompt is the complete context.
 - For `model_mode: inherit`, omit the model override.
 - Wait for that member to finish before starting the next member.
@@ -505,8 +507,8 @@ Use `apply_patch` to create `skills/roundtable/agents/openai.yaml` exactly:
 ```yaml
 interface:
   display_name: "Roundtable"
-  short_description: "Configure expert agents, run an ordered discussion, and export minutes."
-  default_prompt: "Start a roundtable discussion and guide me through configuring each member."
+  short_description: "Configure agents, run ordered discussions, and export minutes."
+  default_prompt: "Use $roundtable to start a discussion and guide me through configuring each member."
 
 policy:
   allow_implicit_invocation: true
