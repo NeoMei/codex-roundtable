@@ -45,7 +45,6 @@ This repository root is the distributable plugin root. Before installing, run th
   rsync -a --delete --delete-excluded \
     --exclude '/.git' \
     --exclude '/.superpowers/' \
-    --exclude '/docs/superpowers/' \
     "$source_plugin_root/" \
     "$managed_plugin_root/"
   python3 - "$source_manifest" "$managed_manifest" <<'PY'
@@ -110,7 +109,6 @@ PY
   rsync -a --delete --delete-excluded \
     --exclude '/.git' \
     --exclude '/.superpowers/' \
-    --exclude '/docs/superpowers/' \
     "$source_plugin_root/" \
     "$managed_plugin_root/"
   test ! -e "$managed_plugin_root/hooks"
@@ -202,10 +200,4 @@ python3 "$skill_creator_root/scripts/quick_validate.py" skills/roundtable
 python3 "$plugin_creator_root/scripts/validate_plugin.py" .
 ```
 
-Run [tests/acceptance.md](tests/acceptance.md) in a fresh task before publishing.
-
 The source repository is published at `https://github.com/NeoMei/codex-roundtable`. Public Plugins Directory submission is a separate release step from this local installation workflow.
-
-## License
-
-MIT
