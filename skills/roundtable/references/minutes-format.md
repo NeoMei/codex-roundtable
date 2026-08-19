@@ -21,7 +21,7 @@ Keep these fields in the main task context after every round:
 
 At the end of each round, include the ordered member transcript and high-level host summary in the main response. Live commentary is helpful but is not the durable record.
 
-For a host-default runtime policy, use `host default` as the model label unless the runtime reports an exact effective model identifier. Never infer an identifier from the parent session.
+Before a successful spawn, the effective model is unknown and remains null in canonical state. After success, use the exact enum for an explicit runtime policy and `host default` for a host-default runtime policy. Never infer an identifier from the parent session.
 
 ## Output path
 

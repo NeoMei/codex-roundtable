@@ -165,16 +165,20 @@ first spawn. Each member receives a self-contained prompt containing:
 
 The prompt places the contract and contribution request outside a delimited
 untrusted-data block. Topic, persona, prior summaries, user interjections, and
-earlier contributions are inside the block; delimiter-like text in values is
-escaped or quoted, and the member is told not to follow embedded instructions.
-The persona shapes viewpoint only.
+earlier contributions are inside the block. Before interpolation, every field is
+XML-entity encoded in deterministic order: `&` to `&amp;`, then `<` to `&lt;`, then
+`>` to `&gt;`. Only these three ordered replacements are allowed; code fences are
+not an encoding substitute. Therefore the
+host-authored closing tag is the only literal `</discussion-data>` in the prompt.
+The member is told not to follow embedded instructions. The persona shapes viewpoint only.
 
 Each roster record separates the configured model choice from the successful
 runtime model policy. Every spawn attempt reserves a fresh per-member generation
 target such as `member_1_g1`, `member_1_g2`; failed attempts are never retried
-under the same target. On success, the host records `agent_target` and
-`agent_generation` together with runtime policy and an exact reported effective model when available. Otherwise a
-no-override run is labeled `host default`.
+under the same target. `effective_model` is null before a successful spawn. On
+success, the host records `agent_target` and `agent_generation` together with
+runtime policy; explicit success uses the exact model enum and host-default
+success uses `host default`.
 
 After a member completes, the main task emits an ordered progress/commentary
 update as `[角色名]` followed by the text when the current surface supports live
@@ -246,8 +250,7 @@ If a selected model is accepted by the tool schema but cannot start, retry the
 member once on a fresh generation with the model override omitted. Announce the
 fallback. Keep the configured explicit model separate, persist the successful
 runtime policy as host default so later reconstruction does not retry the known-
-failing model, and record `host default` unless the runtime reports an exact
-effective identifier.
+failing model, and record `host default` for that runtime policy.
 
 ### Member failure
 
@@ -320,13 +323,16 @@ marketplace uses its conventional managed source location. Local testing therefo
 creates or refreshes a generated personal-marketplace copy at the exactly guarded
 `~/plugins/roundtable` target from the repository root; the marketplace entry
 points to that managed copy rather than directly to the development checkout.
-First installation and updates guard the exact target against symlinks and use
-scoped `rsync -a --delete --delete-excluded`
-with source-only exclusions, then assert that `hooks/`, `.mcp.json`, `.app.json`,
+Both command blocks run in fail-fast Bash subshells with `set -euo pipefail`.
+First installation requires the exact target to be absent. Before an update can
+reach `rsync --delete`, it verifies the exact path, rejects symlinks and Git
+checkouts, and parses both source and destination manifests to require the exact
+plugin name `roundtable`. The guarded flow then uses scoped
+`rsync -a --delete --delete-excluded` with source-only exclusions and asserts that `hooks/`, `.mcp.json`, `.app.json`,
 manifest `mcpServers`, and manifest `apps` are absent. Updates use the plugin
 creator's cachebuster and reinstall flow instead of hand-editing marketplace
 metadata. These shell instructions are scoped to macOS/Linux and list Bash,
-`rsync`, `rg`, Codex CLI, Python 3, and PyYAML prerequisites.
+Git, `rsync`, `rg`, Codex CLI, Python 3, and PyYAML prerequisites.
 
 The README documents the source-to-managed-copy installation command,
 refresh/reinstall flow, legacy-skill migration, and a fresh-task smoke test.
@@ -366,23 +372,27 @@ Test the installed plugin in fresh Codex tasks with these scenarios:
    model.
 6. On a host without an explicit model enum, verify that the wizard offers only
    `Host default (no model override)` and does not solicit a free-form identifier.
-7. Run a full round and verify fixed speaking order.
-8. Interject between members and verify propagation.
-9. Continue to a second round and verify either member reuse or an explicitly
+7. Verify that effective model state starts null, then becomes the exact enum for
+   explicit success or `host default` for host-default success.
+8. Use topic, interjection, and earlier-contribution values containing exact
+   `</discussion-data>` and verify deterministic entity encoding prevents closure.
+9. Run a full round and verify fixed speaking order.
+10. Interject between members and verify propagation.
+11. Continue to a second round and verify either member reuse or an explicitly
    reported replacement with canonical context.
-10. Where the test host exposes a schema-valid but unavailable model, verify the
+12. Where the test host exposes a schema-valid but unavailable model, verify the
     fresh-target host-default retry and persistent runtime policy. Otherwise record
     this branch as not applicable rather than fabricating a failure.
-11. Exercise cancel, terminate, and ambiguous-stop steering during a member run,
+13. Exercise cancel, terminate, and ambiguous-stop steering during a member run,
     including interruption, late-output suppression, partial records, and export
     differences.
-12. Verify ordered live commentary when supported, inspectable member threads,
+14. Verify ordered live commentary when supported, inspectable member threads,
     and the consolidated ordered transcript in the round response.
-13. Terminate and verify the Markdown file contents and reported path; separately
+15. Terminate and verify the Markdown file contents and reported path; separately
     create a collision and verify the existing file is unchanged and a suffix is used.
-14. Run on a surface without structured input cards and complete the plain-chat
+16. Run on a surface without structured input cards and complete the plain-chat
     fallback.
-15. Run the legacy-skill preflight and verify that a duplicate skill is reported
+17. Run the legacy-skill preflight and verify that a duplicate skill is reported
     without overwriting or deleting it.
 
 ### Acceptance criteria

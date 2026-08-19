@@ -17,7 +17,7 @@ Inspired by [NeoMei/dsh-roundtable](https://github.com/NeoMei/dsh-roundtable), r
 
 - Installation commands below support macOS and Linux and require Bash.
 - A current Codex release with subagents enabled.
-- The Codex CLI, `rsync`, and `rg` on `PATH`.
+- Git, the Codex CLI, `rsync`, and `rg` on `PATH`.
 - A writable workspace to save minutes. Without one, the plugin returns Markdown in chat.
 - Installed models and permissions are determined by the active Codex host.
 - Python 3 with [PyYAML](https://pyyaml.org/) installed for the bundled validation scripts.
@@ -27,26 +27,35 @@ Inspired by [NeoMei/dsh-roundtable](https://github.com/NeoMei/dsh-roundtable), r
 This repository root is the distributable plugin root. Before installing, run the legacy-skill check below. For a first installation, use the bundled plugin-creator workflow to generate the exact personal-marketplace target. If that target already exists, inspect it and use the update flow below; do not force or overwrite an unrelated directory.
 
 ```bash
-source_plugin_root="$(git rev-parse --show-toplevel)"
-managed_plugin_root="$HOME/plugins/roundtable"
-plugin_creator_root="${CODEX_HOME:-$HOME/.codex}/skills/.system/plugin-creator"
-test "$managed_plugin_root" = "$HOME/plugins/roundtable" || exit 1
-test ! -L "$managed_plugin_root" || exit 1
-python3 "$plugin_creator_root/scripts/create_basic_plugin.py" roundtable --with-skills --with-marketplace
-test -f "$managed_plugin_root/.codex-plugin/plugin.json" || exit 1
-rsync -a --delete --delete-excluded \
-  --exclude '/.git' \
-  --exclude '/.superpowers/' \
-  --exclude '/docs/superpowers/' \
-  "$source_plugin_root/" \
-  "$managed_plugin_root/"
-test ! -e "$managed_plugin_root/hooks" || exit 1
-test ! -e "$managed_plugin_root/.mcp.json" || exit 1
-test ! -e "$managed_plugin_root/.app.json" || exit 1
-if rg -n '"(mcpServers|apps)"[[:space:]]*:' "$managed_plugin_root/.codex-plugin/plugin.json"; then exit 1; fi
-python3 "$plugin_creator_root/scripts/validate_plugin.py" "$managed_plugin_root"
-marketplace_name="$(python3 "$plugin_creator_root/scripts/read_marketplace_name.py")"
-codex plugin add "roundtable@$marketplace_name"
+(
+  set -euo pipefail
+  source_plugin_root="$(git rev-parse --show-toplevel)"
+  managed_plugin_root="$HOME/plugins/roundtable"
+  source_manifest="$source_plugin_root/.codex-plugin/plugin.json"
+  plugin_creator_root="${CODEX_HOME:-$HOME/.codex}/skills/.system/plugin-creator"
+  test "$managed_plugin_root" = "$HOME/plugins/roundtable"
+  test ! -e "$managed_plugin_root"
+  test ! -L "$managed_plugin_root"
+  python3 -c 'import json,sys; assert json.load(open(sys.argv[1]))["name"] == "roundtable"' "$source_manifest"
+  python3 "$plugin_creator_root/scripts/create_basic_plugin.py" roundtable --with-skills --with-marketplace
+  managed_manifest="$managed_plugin_root/.codex-plugin/plugin.json"
+  test -f "$managed_manifest"
+  test ! -e "$managed_plugin_root/.git"
+  python3 -c 'import json,sys; assert all(json.load(open(path))["name"] == "roundtable" for path in sys.argv[1:])' "$source_manifest" "$managed_manifest"
+  rsync -a --delete --delete-excluded \
+    --exclude '/.git' \
+    --exclude '/.superpowers/' \
+    --exclude '/docs/superpowers/' \
+    "$source_plugin_root/" \
+    "$managed_plugin_root/"
+  test ! -e "$managed_plugin_root/hooks"
+  test ! -e "$managed_plugin_root/.mcp.json"
+  test ! -e "$managed_plugin_root/.app.json"
+  if rg -n '"(mcpServers|apps)"[[:space:]]*:' "$managed_manifest"; then exit 1; fi
+  python3 "$plugin_creator_root/scripts/validate_plugin.py" "$managed_plugin_root"
+  marketplace_name="$(python3 "$plugin_creator_root/scripts/read_marketplace_name.py")"
+  codex plugin add "roundtable@$marketplace_name"
+)
 ```
 
 Treat `~/plugins/roundtable` as generated installation state; source changes belong in this checkout. Do not hand-edit marketplace JSON. After installation, use a fresh Codex task to verify that `$roundtable` resolves to this plugin's skill.
@@ -54,26 +63,33 @@ Treat `~/plugins/roundtable` as generated installation state; source changes bel
 For subsequent local updates, synchronize the checkout, refresh the managed copy's cachebuster, validate it, read the marketplace name, and reinstall:
 
 ```bash
-source_plugin_root="$(git rev-parse --show-toplevel)"
-managed_plugin_root="$HOME/plugins/roundtable"
-plugin_creator_root="${CODEX_HOME:-$HOME/.codex}/skills/.system/plugin-creator"
-test "$managed_plugin_root" = "$HOME/plugins/roundtable" || exit 1
-test ! -L "$managed_plugin_root" || exit 1
-test -f "$managed_plugin_root/.codex-plugin/plugin.json" || exit 1
-rsync -a --delete --delete-excluded \
-  --exclude '/.git' \
-  --exclude '/.superpowers/' \
-  --exclude '/docs/superpowers/' \
-  "$source_plugin_root/" \
-  "$managed_plugin_root/"
-test ! -e "$managed_plugin_root/hooks" || exit 1
-test ! -e "$managed_plugin_root/.mcp.json" || exit 1
-test ! -e "$managed_plugin_root/.app.json" || exit 1
-if rg -n '"(mcpServers|apps)"[[:space:]]*:' "$managed_plugin_root/.codex-plugin/plugin.json"; then exit 1; fi
-python3 "$plugin_creator_root/scripts/update_plugin_cachebuster.py" "$managed_plugin_root"
-python3 "$plugin_creator_root/scripts/validate_plugin.py" "$managed_plugin_root"
-marketplace_name="$(python3 "$plugin_creator_root/scripts/read_marketplace_name.py")"
-codex plugin add "roundtable@$marketplace_name"
+(
+  set -euo pipefail
+  source_plugin_root="$(git rev-parse --show-toplevel)"
+  managed_plugin_root="$HOME/plugins/roundtable"
+  source_manifest="$source_plugin_root/.codex-plugin/plugin.json"
+  managed_manifest="$managed_plugin_root/.codex-plugin/plugin.json"
+  plugin_creator_root="${CODEX_HOME:-$HOME/.codex}/skills/.system/plugin-creator"
+  test "$managed_plugin_root" = "$HOME/plugins/roundtable"
+  test ! -L "$managed_plugin_root"
+  test -f "$managed_manifest"
+  test ! -e "$managed_plugin_root/.git"
+  python3 -c 'import json,sys; assert all(json.load(open(path))["name"] == "roundtable" for path in sys.argv[1:])' "$source_manifest" "$managed_manifest"
+  rsync -a --delete --delete-excluded \
+    --exclude '/.git' \
+    --exclude '/.superpowers/' \
+    --exclude '/docs/superpowers/' \
+    "$source_plugin_root/" \
+    "$managed_plugin_root/"
+  test ! -e "$managed_plugin_root/hooks"
+  test ! -e "$managed_plugin_root/.mcp.json"
+  test ! -e "$managed_plugin_root/.app.json"
+  if rg -n '"(mcpServers|apps)"[[:space:]]*:' "$managed_manifest"; then exit 1; fi
+  python3 "$plugin_creator_root/scripts/update_plugin_cachebuster.py" "$managed_plugin_root"
+  python3 "$plugin_creator_root/scripts/validate_plugin.py" "$managed_plugin_root"
+  marketplace_name="$(python3 "$plugin_creator_root/scripts/read_marketplace_name.py")"
+  codex plugin add "roundtable@$marketplace_name"
+)
 ```
 
 Use a fresh Codex task after every install or update so Codex discovers the refreshed skill.

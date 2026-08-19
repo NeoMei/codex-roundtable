@@ -40,7 +40,7 @@ model_mode: host_default
 model: null
 runtime_model_mode: null
 runtime_model: null
-effective_model: host default
+effective_model: null
 spawn_generation: 0
 agent_target: null
 agent_generation: null
@@ -58,7 +58,7 @@ Offer explicit models only when the active member-spawn tool exposes a finite li
 
 If the active tool exposes no model enum, offer only `Host default (no model override)` and explain that the surface does not expose portable per-member discovery. If a card cannot display the complete enum, show the complete numbered list in plain chat.
 
-Store the host-default choice as `model_mode: host_default`, `model: null`; store an explicit choice as `model_mode: explicit`, `model: <exact enum value>`. Record the effective label as `host default` unless the runtime reports an exact effective model identifier.
+Store the host-default choice as `model_mode: host_default`, `model: null`; store an explicit choice as `model_mode: explicit`, `model: <exact enum value>`. Keep `effective_model: null` before the first successful spawn. After success, set it to the exact enum for an explicit runtime policy or `host default` for a host-default runtime policy.
 
 ## Persona safety
 

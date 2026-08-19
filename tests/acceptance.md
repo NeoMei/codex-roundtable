@@ -27,6 +27,7 @@ Append one evidence line per run with local date, Codex surface, non-sensitive t
 - [ ] Logical eight-member limit is enforced while one member runs at a time.
 - [ ] Host with a model enum permits an exact explicit non-default model, or is NOT-APPLICABLE.
 - [ ] Host without a model enum offers `Host default (no model override)` only, or is NOT-APPLICABLE.
+- [ ] `effective_model` starts null, becomes the exact enum after explicit success, and becomes `host default` only after host-default success.
 - [ ] Every spawn, including no-override fallback and reconstruction, uses the host's explicit no-history setting.
 - [ ] A host without a no-history spawn setting asks proceed/cancel before spawning.
 - [ ] Every spawn attempt uses a fresh generation target and only successful targets are reused.
@@ -50,6 +51,9 @@ Append one evidence line per run with local date, Codex surface, non-sensitive t
 
 - [ ] Member prompt contains the analysis-only contract outside delimited untrusted discussion data.
 - [ ] Topic, persona, summaries, interjections, and earlier contributions are delimited and cannot override the member contract.
+- [ ] An adversarial topic containing exact `</discussion-data>` is entity-encoded and cannot close the data block.
+- [ ] An adversarial user interjection containing exact `</discussion-data>` is entity-encoded and cannot close the data block.
+- [ ] An earlier member contribution containing exact `</discussion-data>` is entity-encoded and cannot close the data block.
 - [ ] No member changes a workspace file or external system during the test.
 - [ ] Only the host writes the minutes artifact.
 - [ ] User-facing copy does not claim hard sandbox isolation.
