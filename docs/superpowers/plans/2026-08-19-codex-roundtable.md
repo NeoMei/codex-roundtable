@@ -604,8 +604,8 @@ Append one evidence line per run with local date, Codex surface, non-sensitive t
 - [x] Ordinary user interjection reaches the next safe member or next round as untrusted data.
 - [x] Second round reuses the member target or reports a context-preserving fresh-generation replacement.
 - [ ] A member failing both initial and fallback attempts offers retry, skip, or terminate.
-- [ ] Cancel/`取消` interrupts when supported, ignores late output, records a partial round and non-speakers, and exits without export.
-- [ ] Terminate/`终止` interrupts when supported, ignores late output, records a partial round and exports partial minutes.
+- [x] Cancel/`取消` interrupts when supported, ignores late output, records a partial round and non-speakers, and exits without export.
+- [x] Terminate/`终止` interrupts when supported, ignores late output, records a partial round and exports partial minutes.
 - [x] Ambiguous stop/`停止` interrupts first, ignores late output, records the partial round and non-speaker, and asks cancel-without-export versus terminate-with-export.
 - [x] Choosing cancel after ambiguous stop writes no export.
 - [x] Termination creates a Markdown file with required sections.
@@ -639,6 +639,7 @@ Historical evidence below is retained for traceability and does not satisfy rese
 - 2026-08-19 | Codex Desktop | RT-A7 | source f972328 | installed 0.1.0+codex.20260819121435 | PASS | Namespaced inline topic completed an eight-member plain-chat roster using host default; the add action disappeared at eight, a ninth member was explicitly rejected, and setup cancellation spawned no member and wrote no file.
 - 2026-08-19 | Codex Desktop | RT-A8 | source f972328 | installed 0.1.0+codex.20260819121435 | PASS | Sanitized parent-event evidence showed first spawn `member_1_g1` with `fork_turns: "none"`; ambiguous stop interrupted immediately, listed the non-speaker, offered cancel/terminate, ignored late output, and cancel wrote no export. A second namespaced invocation used fresh `member_1_g2` with no-history, completed a real subagent with live commentary, full transcript, and neutral summary; termination produced a host-written 69-line Markdown artifact with required sections.
 - 2026-08-19 | Codex Desktop | RT-A9 | source f972328 | installed 0.1.0+codex.20260819121435 | PASS | Third namespaced invocation selected explicit `gpt-5.6-luna`: generation 3 used no-history and failed, then fresh generation 4 used no-history with no model override and succeeded as host default. Round two reused the successful target through follow-up. Exact closing tags in persona, interjection, and prior contribution remained entity text, and the interjection propagated to round two. Termination created the `-2` collision artifact with 102 lines while the original file hash remained unchanged.
+- 2026-08-19 | Codex Desktop | RT-A10 | source f972328 | installed 0.1.0+codex.20260819121435 | PASS | In a namespaced host-default single-member run, immediate `终止` interrupted the active member, ignored late output, recorded a partial round with no completed speaker and the member listed as a non-speaker, and exported partial minutes as the third artifact. A fresh namespaced invocation followed by immediate `取消` interrupted and ignored late output, recorded the same partial participation state, wrote no export, and left the artifact count at three.
 ````
 <!-- /exact-file:tests/acceptance.md -->
 
