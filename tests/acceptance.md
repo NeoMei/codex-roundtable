@@ -6,7 +6,7 @@ Current status: structural validation has been refreshed, but behavioral accepta
 
 ## Evidence format
 
-Append one evidence line per run with local date, Codex surface, non-sensitive task alias, source commit, installed cachebuster/version, PASS/FAIL/NOT-APPLICABLE, and a short observation.
+Append one evidence line per run with local date, Codex surface, non-sensitive task alias, source commit, installed cachebuster/version, PASS/FAIL/PARTIAL/NOT-APPLICABLE, and a short observation.
 
 ## Structural checks
 
@@ -15,12 +15,14 @@ Append one evidence line per run with local date, Codex surface, non-sensitive t
 - [x] Manifest has no `mcpServers` or `apps` field.
 - [x] Skill bundle has no executable call to legacy DSH-only tools.
 - [ ] Legacy same-name skill preflight inspects both standard standalone roots without overwriting or deleting entries.
-- [ ] A fresh task exposes only the intended Codex-native `roundtable` skill.
+- [ ] `codex debug prompt-input '$roundtable:roundtable test'` lists the plugin entry `roundtable:roundtable` and resolves the installed plugin prompt.
+- [ ] When a standalone conflict coexists, discovery distinguishes unnamespaced `roundtable` from plugin `roundtable:roundtable`.
 
 ## Fresh-task behavior
 
-- [ ] `圆桌讨论` with no topic starts the topic question.
-- [ ] `$roundtable` with an inline topic confirms that topic.
+- [ ] `圆桌讨论` with no topic starts the topic question when no standalone name conflict is visible.
+- [ ] `$roundtable:roundtable` with an inline topic confirms that topic.
+- [ ] With a visible standalone conflict, the workflow requires `$roundtable:roundtable` and does not treat `$roundtable` as deterministic plugin invocation.
 - [ ] Recommended role can be accepted and its persona edited.
 - [ ] Custom role can be added.
 - [ ] A persona requesting side effects or conflicting with the analysis-only contract is rejected.
@@ -65,3 +67,7 @@ Historical evidence below is retained for traceability and does not satisfy rese
 - 2026-08-19 | Codex Desktop | RT-A1 | source f4f8140 | installed 0.1.0+codex.20260819105232 | PASS | Historical run: two configured members completed two ordered rounds; an explicit model failure eventually used host default after an ineffective same-target retry was corrected; a human interjection reached round two; targets were reused; the host wrote and verified a 97-line Markdown artifact. Collision behavior was not tested.
 - 2026-08-19 | Codex Desktop | RT-A2 | source f4f8140 | installed 0.1.0+codex.20260819105232 | PASS | Historical run: natural-language invocation without a topic asked for one, a custom role was accepted, and setup cancellation spawned no members and wrote no additional minutes file.
 - 2026-08-19 | Codex Desktop | RT-A1 | source f4f8140 | installed 0.1.0+codex.20260819105232 | NOT-APPLICABLE | Historical run: the active spawn surface exposed a finite model enum, so the no-enum branch was unavailable and remains unchecked.
+- 2026-08-19 | Codex Desktop | RT-A3 | source 41bb4a8 | installed 0.1.0+codex.20260819114708 | PARTIAL | Historical behavior evidence only; the exercised roundtable flow did not verify namespaced plugin identity, so it cannot establish discovery or invocation correctness.
+- 2026-08-19 | Codex Desktop | RT-A4 | source 41bb4a8 | installed 0.1.0+codex.20260819114708 | PARTIAL | Historical behavior evidence only; observed workflow behavior is retained, but unnamespaced invocation left the executing skill identity ambiguous.
+- 2026-08-19 | Codex CLI | RT-A5 | source 41bb4a8 | installed 0.1.0+codex.20260819114708 | FAIL | Pre-fix `codex debug prompt-input` listed both unnamespaced `roundtable` from the legacy standalone skill and plugin `roundtable:roundtable`, disproving the single-visible-skill assumption.
+- 2026-08-19 | Codex CLI | RT-A6 | source 41bb4a8 | installed 0.1.0+codex.20260819114708 | FAIL | Pre-fix `codex exec '$roundtable ...'` loaded the legacy skill while `codex exec '$roundtable:roundtable ...'` loaded the installed plugin; unnamespaced plugin guidance was misrouted.

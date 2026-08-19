@@ -67,8 +67,8 @@ points to `./skills/`. It contains valid semver and presentation metadata but no
 
 `skills/roundtable/SKILL.md` is the compact router and orchestration contract. It:
 
-- activates for explicit `$roundtable` use and clear phrases such as
-  `圆桌讨论` or `圆桌会议`;
+- activates deterministically for explicit `$roundtable:roundtable` use and, only
+  when no visible standalone conflict exists, clear phrases such as `圆桌讨论` or `圆桌会议`;
 - establishes the fixed, neutral meeting host;
 - loads the setup reference while configuring the meeting;
 - authorizes and requires Codex-native subagent delegation for each configured
@@ -97,17 +97,21 @@ written to disk.
 ### UI metadata
 
 `agents/openai.yaml` provides the desktop-facing display name, description, and
-starter prompt. Implicit invocation remains enabled because the skill has narrow,
-unambiguous trigger language.
+namespaced starter prompt. Implicit invocation remains enabled for narrow natural-
+language triggers, but it is dependable only when no visible standalone
+`roundtable` conflict exists.
 
 ## User Flow
 
 ### 1. Start and topic
 
-The skill starts when the user explicitly invokes `$roundtable` or clearly asks
-for a roundtable discussion. If the request already contains a topic, the skill
-uses it; otherwise it asks for one. Once known, the skill renames the current
-Codex task to the topic when the task-title tool is available.
+The skill starts deterministically when the user explicitly invokes
+`$roundtable:roundtable`. An unnamespaced `$roundtable` may resolve to a standalone
+DSH/OpenCode skill and is not a deterministic plugin entry. A clear natural-
+language request may start the workflow only when no same-name standalone conflict
+is visible; with coexistence, the user must use the namespaced invocation. If the
+request already contains a topic, the skill uses it; otherwise it asks for one.
+Once known, the skill renames the current Codex task when the title tool is available.
 
 ### 2. Configure members
 
@@ -315,8 +319,13 @@ If a legacy skill is found:
 - ask the user to disable it through Codex skill configuration or move it out of
   the discovered skill roots;
 - never overwrite, delete, or edit the legacy file silently;
-- verify in a fresh task that only the intended Codex-native `roundtable` skill is
-  selected by `$roundtable`.
+- verify from a fresh Codex process that `roundtable:roundtable` is listed as the
+  plugin entry and `$roundtable:roundtable` resolves the installed plugin prompt.
+
+Official disable configuration remains the preferred way to remove ambiguity.
+When a standalone DSH/OpenCode skill intentionally coexists, an unnamespaced
+`roundtable` entry is expected and belongs to that standalone skill; plugin usage
+must remain namespaced.
 
 The Git repository root is the distributable plugin root, but the personal
 marketplace uses its conventional managed source location. Local testing therefore
@@ -338,7 +347,8 @@ metadata. These shell instructions are scoped to macOS/Linux and list Bash,
 Git, `rsync`, `rg`, Codex CLI, Python 3, and PyYAML prerequisites.
 
 The README documents the source-to-managed-copy installation command,
-refresh/reinstall flow, legacy-skill migration, and a fresh-task smoke test.
+refresh/reinstall flow, legacy-skill migration, and a fresh-process namespace
+check using `codex debug prompt-input '$roundtable:roundtable test'`.
 Public marketplace submission remains separate from local development
 installation.
 
@@ -366,36 +376,39 @@ harness for host-level subagent failures.
 
 Test the installed plugin in fresh Codex tasks with these scenarios:
 
-1. Trigger with `圆桌讨论` and no topic.
-2. Trigger with `$roundtable` and an inline topic.
-3. Accept a recommended role and edit its persona.
-4. Add a custom role and reach the logical eight-member limit while running only
+1. Without a visible standalone conflict, trigger with `圆桌讨论` and no topic.
+2. Trigger deterministically with `$roundtable:roundtable` and an inline topic.
+3. With a visible legacy standalone skill, verify discovery lists both
+   unnamespaced `roundtable` and plugin `roundtable:roundtable`, and require the
+   namespaced form for plugin execution.
+4. Accept a recommended role and edit its persona.
+5. Add a custom role and reach the logical eight-member limit while running only
    one member at a time.
-5. On a host that exposes an explicit model enum, select an available non-default
+6. On a host that exposes an explicit model enum, select an available non-default
    model.
-6. On a host without an explicit model enum, verify that the wizard offers only
+7. On a host without an explicit model enum, verify that the wizard offers only
    `Host default (no model override)` and does not solicit a free-form identifier.
-7. Verify that effective model state starts null, then becomes the exact enum for
+8. Verify that effective model state starts null, then becomes the exact enum for
    explicit success or `host default` for host-default success.
-8. Use topic, interjection, and earlier-contribution values containing exact
+9. Use topic, interjection, and earlier-contribution values containing exact
    `</discussion-data>` and verify deterministic entity encoding prevents closure.
-9. Run a full round and verify fixed speaking order.
-10. Interject between members and verify propagation.
-11. Continue to a second round and verify either member reuse or an explicitly
+10. Run a full round and verify fixed speaking order.
+11. Interject between members and verify propagation.
+12. Continue to a second round and verify either member reuse or an explicitly
    reported replacement with canonical context.
-12. Where the test host exposes a schema-valid but unavailable model, verify the
+13. Where the test host exposes a schema-valid but unavailable model, verify the
     fresh-target host-default retry and persistent runtime policy. Otherwise record
     this branch as not applicable rather than fabricating a failure.
-13. Exercise cancel, terminate, and ambiguous-stop steering during a member run,
+14. Exercise cancel, terminate, and ambiguous-stop steering during a member run,
     including interruption, late-output suppression, partial records, and export
     differences.
-14. Verify ordered live commentary when supported, inspectable member threads,
+15. Verify ordered live commentary when supported, inspectable member threads,
     and the consolidated ordered transcript in the round response.
-15. Terminate and verify the Markdown file contents and reported path; separately
+16. Terminate and verify the Markdown file contents and reported path; separately
     create a collision and verify the existing file is unchanged and a suffix is used.
-16. Run on a surface without structured input cards and complete the plain-chat
+17. Run on a surface without structured input cards and complete the plain-chat
     fallback.
-17. Run the legacy-skill preflight and verify that a duplicate skill is reported
+18. Run the legacy-skill preflight and verify that a duplicate skill is reported
     without overwriting or deleting it.
 
 ### Acceptance criteria
@@ -403,11 +416,10 @@ Test the installed plugin in fresh Codex tasks with these scenarios:
 The implementation is accepted when:
 
 - it installs as a skills-only plugin in Codex;
-- the installation preflight detects a legacy same-name skill, and a fresh task
-  exposes only the intended Codex-native skill after the user resolves the
-  conflict;
-- both implicit Chinese trigger phrases and explicit `$roundtable` invocation
-  activate the intended workflow;
+- the installation preflight detects a legacy same-name skill and fresh-process
+  namespace inspection proves `$roundtable:roundtable` resolves the plugin;
+- explicit `$roundtable:roundtable` activates the plugin deterministically, while
+  implicit Chinese trigger phrases are accepted only without a visible conflict;
 - its executable skill instructions contain no calls to the DSH-only
   `ask_user_question`, `roundtable`, `roundtable_models`, or `roundtable_title`
   tools;

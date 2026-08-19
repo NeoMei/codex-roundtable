@@ -19,7 +19,7 @@
     "category": "Productivity",
     "capabilities": ["Multi-agent", "Write"],
     "websiteURL": "https://github.com/NeoMei/codex-roundtable",
-    "defaultPrompt": ["Start a roundtable discussion and help me configure each member."],
+    "defaultPrompt": ["Use $roundtable:roundtable to start a discussion and help me configure each member."],
     "brandColor": "#4F46E5"
   }
 }

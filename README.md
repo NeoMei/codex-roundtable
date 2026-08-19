@@ -7,6 +7,7 @@ Inspired by [NeoMei/dsh-roundtable](https://github.com/NeoMei/dsh-roundtable), r
 ## Features
 
 - Complete topic and member setup wizard.
+- Deterministic namespaced invocation with `$roundtable:roundtable`.
 - One real Codex subagent per member execution.
 - Runtime-safe model selection with host-default fallback.
 - Ordered multi-round discussion and user interjections.
@@ -72,7 +73,7 @@ PY
 )
 ```
 
-Treat `~/plugins/roundtable` as generated installation state; source changes belong in this checkout. Do not hand-edit marketplace JSON. After installation, use a fresh Codex task to verify that `$roundtable` resolves to this plugin's skill.
+Treat `~/plugins/roundtable` as generated installation state; source changes belong in this checkout. Do not hand-edit marketplace JSON. After installation, run the namespaced verification in the migration section below, then use a fresh Codex task with `$roundtable:roundtable`.
 
 For subsequent local updates, synchronize the checkout, refresh the managed copy's cachebuster, validate it, read the marketplace name, and reinstall:
 
@@ -151,14 +152,22 @@ path = "/absolute/path/to/the/legacy/roundtable"
 enabled = false
 ```
 
-The `path` value must be the exact legacy skill folder containing `SKILL.md`, not the `SKILL.md` file itself. Restart or refresh Codex after changing skill configuration. In a fresh task, verify that `$roundtable` resolves to this plugin's skill.
+The `path` value must be the exact legacy skill folder containing `SKILL.md`, not the `SKILL.md` file itself. Restart or refresh Codex after changing skill configuration.
+
+Whether the standalone skill is disabled or intentionally retained, verify the plugin namespace from a fresh Codex CLI process:
+
+```bash
+codex debug prompt-input '$roundtable:roundtable test'
+```
+
+Confirm the output lists the plugin entry `roundtable:roundtable` and resolves the installed plugin's prompt. An unnamespaced `roundtable` entry may still be listed when a standalone DSH/OpenCode skill is visible; that is a separate skill, not a plugin alias.
 
 ## Usage
 
 Explicit:
 
 ```text
-$roundtable Discuss whether we should split this service into independent deployments.
+$roundtable:roundtable Discuss whether we should split this service into independent deployments.
 ```
 
 Natural language:
@@ -166,6 +175,8 @@ Natural language:
 ```text
 圆桌讨论：这个产品是否应该转向企业市场？
 ```
+
+`$roundtable:roundtable` is the deterministic plugin invocation. `$roundtable` may belong to a visible standalone DSH/OpenCode skill and must not be used to verify or invoke this plugin deterministically. Natural-language triggering is dependable only when no same-name standalone conflict is visible; with coexistence, use the namespaced invocation.
 
 Member model choices are limited to identifiers explicitly exposed by the active Codex spawn tool; otherwise members use `Host default (no model override)`. The plugin makes no model-equivalence claim across host and member tasks.
 

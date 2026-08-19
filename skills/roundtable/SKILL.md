@@ -1,6 +1,6 @@
 ---
 name: roundtable
-description: Run a guided multi-agent roundtable when the user says 圆桌讨论 or 圆桌会议, asks expert roles to debate, or explicitly invokes $roundtable. Do not use for ordinary brainstorming or single-perspective advice.
+description: Use when the user explicitly invokes $roundtable:roundtable, or asks for a roundtable discussion and no conflicting standalone roundtable skill is visible. Do not use for ordinary brainstorming, single-perspective advice, or ambiguous $roundtable resolution.
 ---
 
 # Roundtable
@@ -9,6 +9,8 @@ Run a multi-round discussion with a fixed neutral host and user-configured Codex
 
 ## Preconditions
 
+- The deterministic plugin entry is `$roundtable:roundtable`. An unnamespaced `$roundtable` may resolve to a standalone DSH/OpenCode skill instead of this plugin.
+- Natural-language triggers such as `圆桌讨论` or `圆桌会议` are reliable only when no visible standalone `roundtable` conflict exists. When a conflict is visible, require the user to invoke `$roundtable:roundtable` before configuration.
 - Use real Codex subagents for members. Do not simulate several members inside the host response.
 - This skill instruction is an explicit request to delegate the configured member work.
 - Never create separate top-level Codex tasks for members.

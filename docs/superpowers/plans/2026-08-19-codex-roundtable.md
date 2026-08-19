@@ -8,6 +8,7 @@
 
 ## Global constraints
 
+- The deterministic plugin entry is `$roundtable:roundtable`. An unnamespaced `$roundtable` may belong to a standalone DSH/OpenCode skill; natural-language triggers are dependable only without a visible conflict.
 - The logical roster contains one to eight members and executes one member at a time.
 - Every spawn uses `fork_turns: "none"` or the smallest schema-supported no-history value. If the host cannot disable full-history forking, ask proceed/cancel before spawning.
 - Every spawn attempt uses a fresh per-member generation target. Configured model choice and successful runtime model policy are separate canonical fields; `effective_model` is null until success, then exact enum for explicit or `host default` for host-default policy.
@@ -21,7 +22,7 @@
 
 ## Task 1: Scaffold the skills-only plugin
 
-Maintain `.codex-plugin/plugin.json`, `LICENSE`, and the declared skills-only shape. The manifest must parse as JSON and contain neither `mcpServers` nor `apps`. The declared repository URL is metadata only; create and verify it before public publication.
+Maintain `.codex-plugin/plugin.json`, `LICENSE`, and the declared skills-only shape. The manifest must parse as JSON, contain neither `mcpServers` nor `apps`, and use `$roundtable:roundtable` in its UI default prompt. The declared repository URL is metadata only; create and verify it before public publication.
 
 ## Task 2: Define the setup wizard
 
@@ -228,7 +229,7 @@ The exact skill entrypoint is:
 ````markdown
 ---
 name: roundtable
-description: Run a guided multi-agent roundtable when the user says 圆桌讨论 or 圆桌会议, asks expert roles to debate, or explicitly invokes $roundtable. Do not use for ordinary brainstorming or single-perspective advice.
+description: Use when the user explicitly invokes $roundtable:roundtable, or asks for a roundtable discussion and no conflicting standalone roundtable skill is visible. Do not use for ordinary brainstorming, single-perspective advice, or ambiguous $roundtable resolution.
 ---
 
 # Roundtable
@@ -237,6 +238,8 @@ Run a multi-round discussion with a fixed neutral host and user-configured Codex
 
 ## Preconditions
 
+- The deterministic plugin entry is `$roundtable:roundtable`. An unnamespaced `$roundtable` may resolve to a standalone DSH/OpenCode skill instead of this plugin.
+- Natural-language triggers such as `圆桌讨论` or `圆桌会议` are reliable only when no visible standalone `roundtable` conflict exists. When a conflict is visible, require the user to invoke `$roundtable:roundtable` before configuration.
 - Use real Codex subagents for members. Do not simulate several members inside the host response.
 - This skill instruction is an explicit request to delegate the configured member work.
 - Never create separate top-level Codex tasks for members.
@@ -326,7 +329,7 @@ The exact UI metadata is:
 interface:
   display_name: "Roundtable"
   short_description: "Configure agents, run ordered discussions, and export minutes."
-  default_prompt: "Use $roundtable to start a discussion and guide me through configuring each member."
+  default_prompt: "Use $roundtable:roundtable to start a discussion and guide me through configuring each member."
 
 policy:
   allow_implicit_invocation: true
@@ -348,6 +351,7 @@ Inspired by [NeoMei/dsh-roundtable](https://github.com/NeoMei/dsh-roundtable), r
 ## Features
 
 - Complete topic and member setup wizard.
+- Deterministic namespaced invocation with `$roundtable:roundtable`.
 - One real Codex subagent per member execution.
 - Runtime-safe model selection with host-default fallback.
 - Ordered multi-round discussion and user interjections.
@@ -413,7 +417,7 @@ PY
 )
 ```
 
-Treat `~/plugins/roundtable` as generated installation state; source changes belong in this checkout. Do not hand-edit marketplace JSON. After installation, use a fresh Codex task to verify that `$roundtable` resolves to this plugin's skill.
+Treat `~/plugins/roundtable` as generated installation state; source changes belong in this checkout. Do not hand-edit marketplace JSON. After installation, run the namespaced verification in the migration section below, then use a fresh Codex task with `$roundtable:roundtable`.
 
 For subsequent local updates, synchronize the checkout, refresh the managed copy's cachebuster, validate it, read the marketplace name, and reinstall:
 
@@ -492,14 +496,22 @@ path = "/absolute/path/to/the/legacy/roundtable"
 enabled = false
 ```
 
-The `path` value must be the exact legacy skill folder containing `SKILL.md`, not the `SKILL.md` file itself. Restart or refresh Codex after changing skill configuration. In a fresh task, verify that `$roundtable` resolves to this plugin's skill.
+The `path` value must be the exact legacy skill folder containing `SKILL.md`, not the `SKILL.md` file itself. Restart or refresh Codex after changing skill configuration.
+
+Whether the standalone skill is disabled or intentionally retained, verify the plugin namespace from a fresh Codex CLI process:
+
+```bash
+codex debug prompt-input '$roundtable:roundtable test'
+```
+
+Confirm the output lists the plugin entry `roundtable:roundtable` and resolves the installed plugin's prompt. An unnamespaced `roundtable` entry may still be listed when a standalone DSH/OpenCode skill is visible; that is a separate skill, not a plugin alias.
 
 ## Usage
 
 Explicit:
 
 ```text
-$roundtable Discuss whether we should split this service into independent deployments.
+$roundtable:roundtable Discuss whether we should split this service into independent deployments.
 ```
 
 Natural language:
@@ -507,6 +519,8 @@ Natural language:
 ```text
 圆桌讨论：这个产品是否应该转向企业市场？
 ```
+
+`$roundtable:roundtable` is the deterministic plugin invocation. `$roundtable` may belong to a visible standalone DSH/OpenCode skill and must not be used to verify or invoke this plugin deterministically. Natural-language triggering is dependable only when no same-name standalone conflict is visible; with coexistence, use the namespaced invocation.
 
 Member model choices are limited to identifiers explicitly exposed by the active Codex spawn tool; otherwise members use `Host default (no model override)`. The plugin makes no model-equivalence claim across host and member tasks.
 
@@ -552,7 +566,7 @@ Current status: structural validation has been refreshed, but behavioral accepta
 
 ## Evidence format
 
-Append one evidence line per run with local date, Codex surface, non-sensitive task alias, source commit, installed cachebuster/version, PASS/FAIL/NOT-APPLICABLE, and a short observation.
+Append one evidence line per run with local date, Codex surface, non-sensitive task alias, source commit, installed cachebuster/version, PASS/FAIL/PARTIAL/NOT-APPLICABLE, and a short observation.
 
 ## Structural checks
 
@@ -561,12 +575,14 @@ Append one evidence line per run with local date, Codex surface, non-sensitive t
 - [x] Manifest has no `mcpServers` or `apps` field.
 - [x] Skill bundle has no executable call to legacy DSH-only tools.
 - [ ] Legacy same-name skill preflight inspects both standard standalone roots without overwriting or deleting entries.
-- [ ] A fresh task exposes only the intended Codex-native `roundtable` skill.
+- [ ] `codex debug prompt-input '$roundtable:roundtable test'` lists the plugin entry `roundtable:roundtable` and resolves the installed plugin prompt.
+- [ ] When a standalone conflict coexists, discovery distinguishes unnamespaced `roundtable` from plugin `roundtable:roundtable`.
 
 ## Fresh-task behavior
 
-- [ ] `圆桌讨论` with no topic starts the topic question.
-- [ ] `$roundtable` with an inline topic confirms that topic.
+- [ ] `圆桌讨论` with no topic starts the topic question when no standalone name conflict is visible.
+- [ ] `$roundtable:roundtable` with an inline topic confirms that topic.
+- [ ] With a visible standalone conflict, the workflow requires `$roundtable:roundtable` and does not treat `$roundtable` as deterministic plugin invocation.
 - [ ] Recommended role can be accepted and its persona edited.
 - [ ] Custom role can be added.
 - [ ] A persona requesting side effects or conflicting with the analysis-only contract is rejected.
@@ -611,6 +627,10 @@ Historical evidence below is retained for traceability and does not satisfy rese
 - 2026-08-19 | Codex Desktop | RT-A1 | source f4f8140 | installed 0.1.0+codex.20260819105232 | PASS | Historical run: two configured members completed two ordered rounds; an explicit model failure eventually used host default after an ineffective same-target retry was corrected; a human interjection reached round two; targets were reused; the host wrote and verified a 97-line Markdown artifact. Collision behavior was not tested.
 - 2026-08-19 | Codex Desktop | RT-A2 | source f4f8140 | installed 0.1.0+codex.20260819105232 | PASS | Historical run: natural-language invocation without a topic asked for one, a custom role was accepted, and setup cancellation spawned no members and wrote no additional minutes file.
 - 2026-08-19 | Codex Desktop | RT-A1 | source f4f8140 | installed 0.1.0+codex.20260819105232 | NOT-APPLICABLE | Historical run: the active spawn surface exposed a finite model enum, so the no-enum branch was unavailable and remains unchecked.
+- 2026-08-19 | Codex Desktop | RT-A3 | source 41bb4a8 | installed 0.1.0+codex.20260819114708 | PARTIAL | Historical behavior evidence only; the exercised roundtable flow did not verify namespaced plugin identity, so it cannot establish discovery or invocation correctness.
+- 2026-08-19 | Codex Desktop | RT-A4 | source 41bb4a8 | installed 0.1.0+codex.20260819114708 | PARTIAL | Historical behavior evidence only; observed workflow behavior is retained, but unnamespaced invocation left the executing skill identity ambiguous.
+- 2026-08-19 | Codex CLI | RT-A5 | source 41bb4a8 | installed 0.1.0+codex.20260819114708 | FAIL | Pre-fix `codex debug prompt-input` listed both unnamespaced `roundtable` from the legacy standalone skill and plugin `roundtable:roundtable`, disproving the single-visible-skill assumption.
+- 2026-08-19 | Codex CLI | RT-A6 | source 41bb4a8 | installed 0.1.0+codex.20260819114708 | FAIL | Pre-fix `codex exec '$roundtable ...'` loaded the legacy skill while `codex exec '$roundtable:roundtable ...'` loaded the installed plugin; unnamespaced plugin guidance was misrouted.
 ````
 <!-- /exact-file:tests/acceptance.md -->
 
@@ -663,13 +683,13 @@ On macOS/Linux with Bash, Git, `rsync`, `rg`, Codex CLI, Python 3, and PyYAML:
 2. Run installation commands in fail-fast `set -euo pipefail` subshells. First install requires the exact target to be absent.
 3. Before update deletion, validate exact path, non-symlink, non-Git-checkout state, exact `roundtable` names, a non-empty source repository, and exact source/destination repository equality using explicit `SystemExit` failures. Apply the same manifest identity check after first-install sync.
 4. Use the README's scoped `rsync -a --delete --delete-excluded` flow and post-sync absence assertions.
-5. Validate, update the cachebuster for updates, reinstall through the configured local marketplace, and start a fresh task.
+5. Validate, update the cachebuster for updates, reinstall through the configured local marketplace, then use `codex debug prompt-input '$roundtable:roundtable test'` from a fresh process to verify the plugin entry and resolution.
 6. Record source commit and installed cachebuster/version on every acceptance evidence line.
 7. Keep the no-enum branch unchecked/N/A when unavailable. Test exact closing-tag adversarial values, artifact creation, and collision/non-overwrite separately.
 8. Do not claim behavioral completion while reset checks remain unchecked.
 
 ## Self-review checklist
 
-- Context minimization, fresh generations, effective-model lifecycle, runtime model policy, capacity, steering, deterministic untrusted-data encoding, explicit-failure manifest identity checks, fail-fast exact sync, dual-root preflight, publication URL, and acceptance integrity are represented in both design and implementation.
+- Namespaced discovery, conditional natural-language triggering, context minimization, fresh generations, effective-model lifecycle, runtime model policy, capacity, steering, deterministic untrusted-data encoding, explicit-failure manifest identity checks, fail-fast exact sync, dual-root preflight, publication URL, and acceptance integrity are represented in both design and implementation.
 - Exact product snapshots are byte-compared in validation.
 - No workflow step creates a top-level member task, MCP server, app, or public remote.
