@@ -587,19 +587,20 @@ Append one evidence line per run with local date, Codex surface, non-sensitive t
 - [ ] Custom role can be added.
 - [ ] A persona requesting side effects or conflicting with the analysis-only contract is rejected.
 - [x] Logical eight-member limit removes the add action at eight and explicitly rejects a ninth member.
+- [x] A confirmed eight-member roster completes the observed round with one active member at a time and no skip or failure.
 - [x] Setup cancellation spawns no member and writes no minutes file.
 - [x] Host with a model enum permits an exact explicit non-default model, or is NOT-APPLICABLE.
 - [ ] Host without a model enum offers `Host default (no model override)` only, or is NOT-APPLICABLE.
 - [ ] `effective_model` starts null, becomes the exact enum after explicit success, and becomes `host default` only after host-default success.
-- [x] Every observed spawn, including a restarted invocation, uses the host's explicit no-history setting.
+- [x] Every observed spawn, including all eight members in the full-roster run, uses the host's explicit no-history setting.
 - [ ] A host without a no-history spawn setting asks proceed/cancel before spawning.
 - [x] Observed spawn attempts use fresh per-member generation targets (`member_1_g1` through `member_1_g4` across the recorded runs).
 - [x] Only successful targets are reused in later rounds.
 - [x] Explicit-model failure falls back on a fresh target and persists host-default runtime policy for later reuse or reconstruction, or is NOT-APPLICABLE.
-- [ ] Capacity is relieved only through supported close operations after canonicalization, or an unrelievable cap reaches the retry/skip/terminate gate.
-- [x] Members speak in confirmed roster order for the observed one-member round.
+- [x] Current host capacity completes all eight members sequentially without overlap; if a cap is encountered, only supported close after canonicalization or the retry/skip/terminate gate is allowed.
+- [x] Members speak in confirmed roster order for the observed eight-member round.
 - [x] Member output appears as ordered live commentary when supported.
-- [x] Round response contains the complete ordered transcript.
+- [x] Round response contains the complete ordered transcript for all eight observed members.
 - [x] Subagent threads are inspectable when the surface exposes them.
 - [x] Ordinary user interjection reaches the next safe member or next round as untrusted data.
 - [x] Second round reuses the member target or reports a context-preserving fresh-generation replacement.
@@ -640,6 +641,7 @@ Historical evidence below is retained for traceability and does not satisfy rese
 - 2026-08-19 | Codex Desktop | RT-A8 | source f972328 | installed 0.1.0+codex.20260819121435 | PASS | Sanitized parent-event evidence showed first spawn `member_1_g1` with `fork_turns: "none"`; ambiguous stop interrupted immediately, listed the non-speaker, offered cancel/terminate, ignored late output, and cancel wrote no export. A second namespaced invocation used fresh `member_1_g2` with no-history, completed a real subagent with live commentary, full transcript, and neutral summary; termination produced a host-written 69-line Markdown artifact with required sections.
 - 2026-08-19 | Codex Desktop | RT-A9 | source f972328 | installed 0.1.0+codex.20260819121435 | PASS | Third namespaced invocation selected explicit `gpt-5.6-luna`: generation 3 used no-history and failed, then fresh generation 4 used no-history with no model override and succeeded as host default. Round two reused the successful target through follow-up. Exact closing tags in persona, interjection, and prior contribution remained entity text, and the interjection propagated to round two. Termination created the `-2` collision artifact with 102 lines while the original file hash remained unchanged.
 - 2026-08-19 | Codex Desktop | RT-A10 | source f972328 | installed 0.1.0+codex.20260819121435 | PASS | In a namespaced host-default single-member run, immediate `终止` interrupted the active member, ignored late output, recorded a partial round with no completed speaker and the member listed as a non-speaker, and exported partial minutes as the third artifact. A fresh namespaced invocation followed by immediate `取消` interrupted and ignored late output, recorded the same partial participation state, wrote no export, and left the artifact count at three.
+- 2026-08-19 | Codex Desktop | RT-A11 | source f972328 | installed 0.1.0+codex.20260819121435 | PASS | Namespaced full wizard configured eight members, and round one completed every member in roster order with no skip or failure. Sanitized parent-event inspection showed members 1–8 each used generation 1 with no-history and no model override, and each completed before the next spawn, proving one active member at a time. Current host capacity required no close operation or failure gate. Termination produced a host-written 103-line Markdown artifact with required sections.
 ````
 <!-- /exact-file:tests/acceptance.md -->
 
