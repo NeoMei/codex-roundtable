@@ -18,21 +18,35 @@ Inspired by [NeoMei/dsh-roundtable](https://github.com/NeoMei/dsh-roundtable), r
 - A current Codex release with subagents enabled.
 - A writable workspace to save minutes. Without one, the plugin returns Markdown in chat.
 - Installed models and permissions are determined by the active Codex host.
+- Python 3 with [PyYAML](https://pyyaml.org/) installed for the bundled validation scripts.
 
 ## Install for local development
 
-This repository root is the distributable plugin root. Create a personal marketplace entry and managed copy, then synchronize this checkout into it:
+This repository root is the distributable plugin root. Before installing, run the legacy-skill check below. Then use the bundled plugin-creator workflow to create the personal marketplace entry and managed copy, synchronize this checkout, validate it, and install it using the marketplace's configured name:
 
 ```bash
 plugin_creator_root="${CODEX_HOME:-$HOME/.codex}/skills/.system/plugin-creator"
 python3 "$plugin_creator_root/scripts/create_basic_plugin.py" roundtable --with-skills --with-marketplace
 rsync -a --exclude '.git/' --exclude 'docs/superpowers/' ./ "$HOME/plugins/roundtable/"
 python3 "$plugin_creator_root/scripts/validate_plugin.py" "$HOME/plugins/roundtable"
+marketplace_name="$(python3 "$plugin_creator_root/scripts/read_marketplace_name.py")"
+codex plugin add "roundtable@$marketplace_name"
 ```
 
-Treat `~/plugins/roundtable` as generated installation state; source changes belong in this checkout. Do not hand-edit marketplace JSON.
+Treat `~/plugins/roundtable` as generated installation state; source changes belong in this checkout. Do not hand-edit marketplace JSON. After installation, use a fresh Codex task to verify that `$roundtable` resolves to this plugin's skill.
 
-Before installing, run the legacy-skill check below.
+For subsequent local updates, synchronize the checkout, refresh the managed copy's cachebuster, validate it, read the marketplace name, and reinstall:
+
+```bash
+plugin_creator_root="${CODEX_HOME:-$HOME/.codex}/skills/.system/plugin-creator"
+rsync -a --exclude '.git/' --exclude 'docs/superpowers/' ./ "$HOME/plugins/roundtable/"
+python3 "$plugin_creator_root/scripts/update_plugin_cachebuster.py" "$HOME/plugins/roundtable"
+python3 "$plugin_creator_root/scripts/validate_plugin.py" "$HOME/plugins/roundtable"
+marketplace_name="$(python3 "$plugin_creator_root/scripts/read_marketplace_name.py")"
+codex plugin add "roundtable@$marketplace_name"
+```
+
+Use a fresh Codex task after every install or update so Codex discovers the refreshed skill.
 
 ### Legacy skill migration
 
@@ -51,11 +65,11 @@ Example disable entry:
 
 ```toml
 [[skills.config]]
-path = "/absolute/path/to/the/legacy/roundtable/SKILL.md"
+path = "/absolute/path/to/the/legacy/roundtable"
 enabled = false
 ```
 
-Restart or refresh Codex after changing skill configuration. In a fresh task, verify that `$roundtable` resolves to this plugin's skill.
+The `path` value must be the exact legacy skill folder containing `SKILL.md`, not the `SKILL.md` file itself. Restart or refresh Codex after changing skill configuration. In a fresh task, verify that `$roundtable` resolves to this plugin's skill.
 
 ## Usage
 
@@ -87,8 +101,10 @@ Completed minutes are written to `roundtable-minutes/<topic-slug>-YYYY-MM-DD.md`
 ## Development validation
 
 ```bash
-python3 /Users/neomei/.codex/skills/.system/skill-creator/scripts/quick_validate.py skills/roundtable
-python3 /Users/neomei/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py .
+plugin_creator_root="${CODEX_HOME:-$HOME/.codex}/skills/.system/plugin-creator"
+skill_creator_root="$(dirname "$plugin_creator_root")/skill-creator"
+python3 "$skill_creator_root/scripts/quick_validate.py" skills/roundtable
+python3 "$plugin_creator_root/scripts/validate_plugin.py" .
 ```
 
 Run [tests/acceptance.md](tests/acceptance.md) in a fresh task before publishing.
