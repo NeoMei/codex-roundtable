@@ -1,0 +1,7 @@
+interface:
+  display_name: "Roundtable"
+  short_description: "Configure agents, run ordered discussions, and export minutes."
+  default_prompt: "Use $roundtable:roundtable to start a discussion and guide me through configuring each member."
+
+policy:
+  allow_implicit_invocation: true

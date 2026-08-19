@@ -1,0 +1,25 @@
+{
+  "name": "roundtable",
+  "version": "0.1.0",
+  "description": "Run guided multi-agent roundtable discussions with ordered speakers and Markdown minutes.",
+  "author": {
+    "name": "NeoMei",
+    "url": "https://github.com/NeoMei"
+  },
+  "homepage": "https://github.com/NeoMei/codex-roundtable",
+  "repository": "https://github.com/NeoMei/codex-roundtable",
+  "license": "MIT",
+  "keywords": ["roundtable", "multi-agent", "discussion", "meeting-minutes"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Roundtable",
+    "shortDescription": "Run guided multi-agent roundtable discussions.",
+    "longDescription": "Configure expert roles and models, run them in a fixed speaking order across multiple rounds, and export a structured Markdown record.",
+    "developerName": "NeoMei",
+    "category": "Productivity",
+    "capabilities": ["Multi-agent", "Write"],
+    "websiteURL": "https://github.com/NeoMei/codex-roundtable",
+    "defaultPrompt": ["Use $roundtable:roundtable to start a discussion and help me configure each member."],
+    "brandColor": "#4F46E5"
+  }
+}
