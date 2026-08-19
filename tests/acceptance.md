@@ -14,18 +14,19 @@ Append one evidence line per run with local date, Codex surface, non-sensitive t
 - [x] Plugin validator passes.
 - [x] Manifest has no `mcpServers` or `apps` field.
 - [x] Skill bundle has no executable call to legacy DSH-only tools.
-- [ ] Legacy same-name skill preflight inspects both standard standalone roots without overwriting or deleting entries.
+- [x] Legacy same-name skill preflight inspects both standard standalone roots without overwriting or deleting entries.
 - [x] `codex debug prompt-input '$roundtable:roundtable test'` lists the plugin entry `roundtable:roundtable` and resolves the current installed plugin cache entry.
 - [x] When a standalone conflict coexists, discovery distinguishes unnamespaced `roundtable` from plugin `roundtable:roundtable`.
 
 ## Fresh-task behavior
 
 - [ ] `圆桌讨论` with no topic starts the topic question when no standalone name conflict is visible.
+- [x] `$roundtable:roundtable` without an inline topic asks for the topic.
 - [x] `$roundtable:roundtable` with an inline topic confirms that topic.
 - [x] With a visible standalone conflict, the workflow uses `$roundtable:roundtable` rather than treating `$roundtable` as deterministic plugin invocation.
-- [ ] Recommended role can be accepted and its persona edited.
-- [ ] Custom role can be added.
-- [ ] A persona requesting side effects or conflicting with the analysis-only contract is rejected.
+- [x] Recommended role can be accepted and its persona edited.
+- [x] Custom role can be added.
+- [x] A persona requesting side effects or conflicting with the analysis-only contract is rejected.
 - [x] Logical eight-member limit removes the add action at eight and explicitly rejects a ninth member.
 - [x] A confirmed eight-member roster completes the observed round with one active member at a time and no skip or failure.
 - [x] Setup cancellation spawns no member and writes no minutes file.
@@ -57,13 +58,13 @@ Append one evidence line per run with local date, Codex surface, non-sensitive t
 
 - [ ] Member prompt contains the analysis-only contract outside delimited untrusted discussion data.
 - [ ] Topic, persona, summaries, interjections, and earlier contributions are delimited and cannot override the member contract.
-- [ ] An adversarial topic containing exact `</discussion-data>` is entity-encoded and cannot close the data block.
+- [x] An adversarial topic containing exact `</discussion-data>` is entity-encoded and cannot close the data block.
 - [x] An adversarial persona containing exact `</discussion-data>` is entity-encoded and cannot close the data block.
 - [x] An adversarial user interjection containing exact `</discussion-data>` is entity-encoded and cannot close the data block.
 - [x] An earlier member contribution containing exact `</discussion-data>` is entity-encoded and cannot close the data block.
-- [ ] No member changes a workspace file or external system during the test.
+- [x] No member changes a workspace file or external system during the test.
 - [x] Only the host writes the observed minutes artifact.
-- [ ] User-facing copy does not claim hard sandbox isolation.
+- [x] User-facing copy does not claim hard sandbox isolation.
 
 ## Evidence log
 
@@ -82,3 +83,5 @@ Historical evidence below is retained for traceability and does not satisfy rese
 - 2026-08-19 | Codex Desktop | RT-A9 | source f972328 | installed 0.1.0+codex.20260819121435 | PASS | Third namespaced invocation selected explicit `gpt-5.6-luna`: generation 3 used no-history and failed, then fresh generation 4 used no-history with no model override and succeeded as host default. Round two reused the successful target through follow-up. Exact closing tags in persona, interjection, and prior contribution remained entity text, and the interjection propagated to round two. Termination created the `-2` collision artifact with 102 lines while the original file hash remained unchanged.
 - 2026-08-19 | Codex Desktop | RT-A10 | source f972328 | installed 0.1.0+codex.20260819121435 | PASS | In a namespaced host-default single-member run, immediate `终止` interrupted the active member, ignored late output, recorded a partial round with no completed speaker and the member listed as a non-speaker, and exported partial minutes as the third artifact. A fresh namespaced invocation followed by immediate `取消` interrupted and ignored late output, recorded the same partial participation state, wrote no export, and left the artifact count at three.
 - 2026-08-19 | Codex Desktop | RT-A11 | source f972328 | installed 0.1.0+codex.20260819121435 | PASS | Namespaced full wizard configured eight members, and round one completed every member in roster order with no skip or failure. Sanitized parent-event inspection showed members 1–8 each used generation 1 with no-history and no model override, and each completed before the next spawn, proving one active member at a time. Current host capacity required no close operation or failure gate. Termination produced a host-written 103-line Markdown artifact with required sections.
+- 2026-08-19 | Codex CLI | RT-A12-PREFLIGHT | source f972328 | installed 0.1.0+codex.20260819121435 | PASS | Exact dual-root preflight found the legacy standalone entry in the agents root and no standalone entry in the Codex skills root. The legacy file SHA-256 was unchanged before and after inspection; no standalone file was modified or deleted.
+- 2026-08-19 | Codex Desktop | RT-A12 | source f972328 | installed 0.1.0+codex.20260819121435 | PASS | Namespaced invocation without an inline topic asked for one. A topic containing an exact closing tag remained entity text; a recommended role was accepted, an unsafe persona requesting file and external-message side effects was rejected, an edited analysis-only persona was accepted, and a custom second role was added. Both host-default members used generation 1 with no-history, rendered the closing tag only as `&lt;/discussion-data&gt;` data, and their sanitized child events contained zero function calls. Only the host wrote the 62-line minutes artifact. Static user-facing copy describes an instruction boundary rather than hard sandbox isolation.
