@@ -580,7 +580,7 @@ This repository root is the distributable plugin root. Before installing, run th
 ```bash
 plugin_creator_root="${CODEX_HOME:-$HOME/.codex}/skills/.system/plugin-creator"
 python3 "$plugin_creator_root/scripts/create_basic_plugin.py" roundtable --with-skills --with-marketplace
-rsync -a --exclude '.git/' --exclude 'docs/superpowers/' ./ "$HOME/plugins/roundtable/"
+rsync -a --exclude '.git' --exclude '.superpowers/' --exclude 'docs/superpowers/' ./ "$HOME/plugins/roundtable/"
 python3 "$plugin_creator_root/scripts/validate_plugin.py" "$HOME/plugins/roundtable"
 marketplace_name="$(python3 "$plugin_creator_root/scripts/read_marketplace_name.py")"
 codex plugin add "roundtable@$marketplace_name"
@@ -592,7 +592,7 @@ For subsequent local updates, synchronize the checkout, refresh the managed copy
 
 ```bash
 plugin_creator_root="${CODEX_HOME:-$HOME/.codex}/skills/.system/plugin-creator"
-rsync -a --exclude '.git/' --exclude 'docs/superpowers/' ./ "$HOME/plugins/roundtable/"
+rsync -a --exclude '.git' --exclude '.superpowers/' --exclude 'docs/superpowers/' ./ "$HOME/plugins/roundtable/"
 python3 "$plugin_creator_root/scripts/update_plugin_cachebuster.py" "$HOME/plugins/roundtable"
 python3 "$plugin_creator_root/scripts/validate_plugin.py" "$HOME/plugins/roundtable"
 marketplace_name="$(python3 "$plugin_creator_root/scripts/read_marketplace_name.py")"
@@ -755,8 +755,10 @@ Run:
 
 ```bash
 python3 -m json.tool .codex-plugin/plugin.json >/dev/null
-python3 /Users/neomei/.codex/skills/.system/skill-creator/scripts/quick_validate.py skills/roundtable
-python3 /Users/neomei/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py .
+plugin_creator_root="${CODEX_HOME:-$HOME/.codex}/skills/.system/plugin-creator"
+skill_creator_root="$(dirname "$plugin_creator_root")/skill-creator"
+uv run --quiet --with pyyaml python "$skill_creator_root/scripts/quick_validate.py" skills/roundtable
+uv run --quiet --with pyyaml python "$plugin_creator_root/scripts/validate_plugin.py" .
 if rg -n 'ask_user_question|roundtable_models|roundtable_title|use the roundtable tool' skills/roundtable; then exit 1; fi
 git diff --check
 ```
@@ -784,7 +786,8 @@ Expected on this machine: report the legacy skill and DSH-only references. Stop 
 Run:
 
 ```bash
-python3 /Users/neomei/.codex/skills/.system/plugin-creator/scripts/create_basic_plugin.py \
+plugin_creator_root="${CODEX_HOME:-$HOME/.codex}/skills/.system/plugin-creator"
+uv run --quiet --with pyyaml python "$plugin_creator_root/scripts/create_basic_plugin.py" \
   roundtable \
   --with-skills \
   --with-marketplace
@@ -797,16 +800,21 @@ Expected: `/Users/neomei/plugins/roundtable/` and the standard personal marketpl
 Run:
 
 ```bash
+source_plugin_root="$(git rev-parse --show-toplevel)"
+plugin_creator_root="${CODEX_HOME:-$HOME/.codex}/skills/.system/plugin-creator"
 rsync -a \
-  --exclude '.git/' \
+  --exclude '.git' \
+  --exclude '.superpowers/' \
   --exclude 'docs/superpowers/' \
-  /Users/neomei/项目/codexprojects/roundtable/ \
+  "$source_plugin_root/" \
   /Users/neomei/plugins/roundtable/
-python3 /Users/neomei/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py /Users/neomei/plugins/roundtable
-python3 /Users/neomei/.codex/skills/.system/plugin-creator/scripts/update_plugin_cachebuster.py /Users/neomei/plugins/roundtable
+uv run --quiet --with pyyaml python "$plugin_creator_root/scripts/validate_plugin.py" /Users/neomei/plugins/roundtable
+uv run --quiet --with pyyaml python "$plugin_creator_root/scripts/update_plugin_cachebuster.py" /Users/neomei/plugins/roundtable
+marketplace_name="$(uv run --quiet --with pyyaml python "$plugin_creator_root/scripts/read_marketplace_name.py")"
+codex plugin add "roundtable@$marketplace_name"
 ```
 
-Expected: installed-copy validation and cachebuster update succeed. Do not hand-edit marketplace JSON.
+Expected: installed-copy validation, cachebuster update, marketplace-name lookup, and plugin installation succeed. Do not hand-edit marketplace JSON.
 
 - [ ] **Step 5: Run the fresh-task acceptance checkpoint**
 
@@ -833,14 +841,16 @@ Run:
 
 ```bash
 python3 -m json.tool .codex-plugin/plugin.json >/dev/null
-python3 /Users/neomei/.codex/skills/.system/skill-creator/scripts/quick_validate.py skills/roundtable
-python3 /Users/neomei/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py .
+plugin_creator_root="${CODEX_HOME:-$HOME/.codex}/skills/.system/plugin-creator"
+skill_creator_root="$(dirname "$plugin_creator_root")/skill-creator"
+uv run --quiet --with pyyaml python "$skill_creator_root/scripts/quick_validate.py" skills/roundtable
+uv run --quiet --with pyyaml python "$plugin_creator_root/scripts/validate_plugin.py" .
 if rg -n 'ask_user_question|roundtable_models|roundtable_title|use the roundtable tool' skills/roundtable; then exit 1; fi
 git diff --check
 git status --short --branch
 ```
 
-Expected: validators exit 0, forbidden scan has no matches, `git diff --check` is clean, and `git status` reports a clean `main` branch.
+Expected: validators exit 0, forbidden scan has no matches, `git diff --check` is clean, and `git status` reports a clean `feature/codex-roundtable` branch.
 
 ---
 

@@ -27,7 +27,7 @@ This repository root is the distributable plugin root. Before installing, run th
 ```bash
 plugin_creator_root="${CODEX_HOME:-$HOME/.codex}/skills/.system/plugin-creator"
 python3 "$plugin_creator_root/scripts/create_basic_plugin.py" roundtable --with-skills --with-marketplace
-rsync -a --exclude '.git/' --exclude 'docs/superpowers/' ./ "$HOME/plugins/roundtable/"
+rsync -a --exclude '.git' --exclude '.superpowers/' --exclude 'docs/superpowers/' ./ "$HOME/plugins/roundtable/"
 python3 "$plugin_creator_root/scripts/validate_plugin.py" "$HOME/plugins/roundtable"
 marketplace_name="$(python3 "$plugin_creator_root/scripts/read_marketplace_name.py")"
 codex plugin add "roundtable@$marketplace_name"
@@ -39,7 +39,7 @@ For subsequent local updates, synchronize the checkout, refresh the managed copy
 
 ```bash
 plugin_creator_root="${CODEX_HOME:-$HOME/.codex}/skills/.system/plugin-creator"
-rsync -a --exclude '.git/' --exclude 'docs/superpowers/' ./ "$HOME/plugins/roundtable/"
+rsync -a --exclude '.git' --exclude '.superpowers/' --exclude 'docs/superpowers/' ./ "$HOME/plugins/roundtable/"
 python3 "$plugin_creator_root/scripts/update_plugin_cachebuster.py" "$HOME/plugins/roundtable"
 python3 "$plugin_creator_root/scripts/validate_plugin.py" "$HOME/plugins/roundtable"
 marketplace_name="$(python3 "$plugin_creator_root/scripts/read_marketplace_name.py")"
