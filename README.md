@@ -34,6 +34,7 @@ This repository root is the distributable plugin root. Before installing, run th
   managed_plugin_root="$HOME/plugins/roundtable"
   source_manifest="$source_plugin_root/.codex-plugin/plugin.json"
   plugin_creator_root="${CODEX_HOME:-$HOME/.codex}/skills/.system/plugin-creator"
+  python3 "$plugin_creator_root/scripts/validate_plugin.py" "$source_plugin_root"
   test "$managed_plugin_root" = "$HOME/plugins/roundtable"
   test ! -e "$managed_plugin_root"
   test ! -L "$managed_plugin_root"
@@ -85,6 +86,7 @@ For subsequent local updates, synchronize the checkout, refresh the managed copy
   source_manifest="$source_plugin_root/.codex-plugin/plugin.json"
   managed_manifest="$managed_plugin_root/.codex-plugin/plugin.json"
   plugin_creator_root="${CODEX_HOME:-$HOME/.codex}/skills/.system/plugin-creator"
+  python3 "$plugin_creator_root/scripts/validate_plugin.py" "$source_plugin_root"
   test "$managed_plugin_root" = "$HOME/plugins/roundtable"
   test ! -L "$managed_plugin_root"
   test -f "$managed_manifest"
@@ -202,7 +204,7 @@ python3 "$plugin_creator_root/scripts/validate_plugin.py" .
 
 Run [tests/acceptance.md](tests/acceptance.md) in a fresh task before publishing.
 
-The manifest declares `https://github.com/NeoMei/codex-roundtable`, but this local workflow does not create a GitHub repository or remote. Create and verify that repository URL separately before any public publication.
+The source repository is published at `https://github.com/NeoMei/codex-roundtable`. Public Plugins Directory submission is a separate release step from this local installation workflow.
 
 ## License
 
