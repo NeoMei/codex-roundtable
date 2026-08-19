@@ -8,6 +8,7 @@ Keep these fields in the main task context after every round:
 
 - round number and topic;
 - ordered roster with effective model labels;
+- successful runtime model policy and current target generation for each member;
 - completed member contributions in speaking order;
 - skipped or failed members;
 - user interjections;
@@ -19,6 +20,8 @@ Keep these fields in the main task context after every round:
 - recommended next-round focus.
 
 At the end of each round, include the ordered member transcript and high-level host summary in the main response. Live commentary is helpful but is not the durable record.
+
+For a host-default runtime policy, use `host default` as the model label unless the runtime reports an exact effective model identifier. Never infer an identifier from the parent session.
 
 ## Output path
 
@@ -93,6 +96,8 @@ Do not copy full member transcripts into the file unless the user asks for a tra
 ## Partial rounds
 
 Label an interrupted round as partial. Summarize only completed contributions and list every member who did not speak. Do not invent missing positions.
+
+Cancellation exits after recording this partial round in the task and does not create an export. Termination includes the partial round in the exported minutes.
 
 ## Write and verify
 

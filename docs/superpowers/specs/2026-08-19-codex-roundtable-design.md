@@ -25,9 +25,10 @@ host summarizes each round; and the completed discussion is exported as Markdown
 
 ## Repository and Plugin Shape
 
-The GitHub repository is named `codex-roundtable`. The plugin and its single skill
-are both named `roundtable`. The project uses the MIT license, matching the source
-project.
+The declared GitHub repository is `codex-roundtable`. The plugin and its single
+skill are both named `roundtable`. The project uses the MIT license, matching the
+source project. Local implementation does not create a GitHub repository or
+remote; the declared URL must be created and verified before public publication.
 
 ```text
 codex-roundtable/
@@ -74,6 +75,8 @@ points to `./skills/`. It contains valid semver and presentation metadata but no
   member;
 - runs members in roster order and prefers to reuse the same subagent in later
   rounds when the runtime still exposes that agent thread;
+- uses explicit no-history spawning, fresh generation targets, persistent runtime
+  model policy, and capacity-aware reconstruction;
 - loads the minutes reference only when summarizing or exporting;
 - constrains member agents to analysis and read-only investigation, leaving the
   host as the only writer of meeting artifacts;
@@ -115,8 +118,10 @@ Members are added one at a time. For each member, the skill collects:
 3. model choice;
 4. whether another member should be added.
 
-The skill recommends topic-relevant roles and personas but always permits custom
-text. The final roster contains between one and eight members. After every answer,
+The skill recommends topic-relevant roles and personas and permits safe custom
+text. It rejects a persona that requests side effects, overrides host
+instructions, or conflicts with the analysis-only contract. The final roster
+contains between one and eight members. After every answer,
 the skill echoes the accepted value so the user can detect mistakes immediately.
 The user confirms the complete roster before any subagent is started.
 
@@ -128,12 +133,13 @@ usable without cards, and it must not truncate a model list merely to fit a card
 ### 3. Select models
 
 The wizard offers only model identifiers explicitly accepted by the current
-agent-spawn tool when that tool exposes an enumerable model set. `Default (inherit
-the current task model)` is always available. The plugin does not embed a provider
-catalog because model availability differs by host and changes over time.
+agent-spawn tool when that tool exposes an enumerable model set. `Host default (no
+model override)` is always available and is stored as `model_mode: host_default`,
+`model: null`. The plugin makes no model-equivalence claim across host and member
+tasks and does not embed a provider catalog because availability differs by host.
 
 If the current surface does not expose an enumerable model set, the wizard offers
-only the default inherited model. It does not accept a free-form model identifier:
+only host default with no override. It does not accept a free-form model identifier:
 an identifier outside the host tool schema may be rejected before an agent can
 start and therefore cannot be portably validated by a skills-only plugin.
 
@@ -142,9 +148,11 @@ start and therefore cannot be portably validated by a skills-only plugin.
 Each member is represented by a real Codex subagent. In the first round, the main
 agent creates and waits for one member at a time, in roster order. Sequential
 execution keeps the active concurrency requirement at one member regardless of
-roster size. A model override uses a self-contained member prompt and the smallest
-supported history fork so the member does not depend on inheriting the main task's
-entire transcript. Each member receives:
+roster size. Every spawn, with or without a model override, uses `fork_turns:
+"none"` or the smallest schema-supported value that explicitly disables history.
+If the host cannot disable full-history forking, the host discloses that the
+minimal-context boundary cannot be guaranteed and asks proceed/cancel before the
+first spawn. Each member receives a self-contained prompt containing:
 
 - the original discussion topic;
 - its role and persona;
@@ -154,6 +162,19 @@ entire transcript. Each member receives:
 - an analysis-only contract: read-only investigation is allowed when needed, but
   the member must not modify files, change external state, send messages, or take
   other side-effecting actions.
+
+The prompt places the contract and contribution request outside a delimited
+untrusted-data block. Topic, persona, prior summaries, user interjections, and
+earlier contributions are inside the block; delimiter-like text in values is
+escaped or quoted, and the member is told not to follow embedded instructions.
+The persona shapes viewpoint only.
+
+Each roster record separates the configured model choice from the successful
+runtime model policy. Every spawn attempt reserves a fresh per-member generation
+target such as `member_1_g1`, `member_1_g2`; failed attempts are never retried
+under the same target. On success, the host records `agent_target` and
+`agent_generation` together with runtime policy and an exact reported effective model when available. Otherwise a
+no-override run is labeled `host default`.
 
 After a member completes, the main task emits an ordered progress/commentary
 update as `[角色名]` followed by the text when the current surface supports live
@@ -176,16 +197,21 @@ summary containing:
 - unresolved questions;
 - a recommended focus for the next round.
 
-The user then chooses `continue` or `terminate` and may add an opinion. Continuing
+The user then chooses `continue`, `terminate`, or `cancel` and may add an opinion. Continuing
 prefers to reuse existing member subagents through follow-up tasks. If a member
-thread is unavailable or the host's agent-thread capacity prevents reuse, the
-skill creates a replacement member with the same self-contained role context. In
-both cases, the prompt includes the canonical round summaries so continuity does
-not depend on private subagent history.
+thread is unavailable, the skill clears its recorded target and creates a
+fresh-generation replacement using the successful runtime model policy. If the
+host publishes a thread cap and a supported close capability, the host may close
+the least-recently-needed completed target only after its contribution is
+canonicalized, then reconstruct it later. Hosts without close support are not
+required to close anything. Capacity that cannot be relieved reaches the
+retry/skip/terminate gate rather than being reported as reuse. Canonical round
+summaries provide continuity.
 
 ### 6. Terminate and export
 
-On termination, the skill writes:
+On termination, including in-flight termination that records a partial round, the
+skill writes:
 
 ```text
 roundtable-minutes/<topic-slug>-YYYY-MM-DD.md
@@ -194,7 +220,9 @@ roundtable-minutes/<topic-slug>-YYYY-MM-DD.md
 The file includes the topic, attendee roster with model labels, a concise section
 for every round, and a detailed final synthesis. Member transcripts remain in the
 task history and are not copied verbatim into the minutes unless the user asks for
-an appendix.
+an appendix. Cancellation records any partial round in the task, lists non-speakers,
+and exits without export. Ambiguous stop intent interrupts first when supported
+and asks whether to cancel without export or terminate with export.
 
 ## Context and Recovery
 
@@ -204,32 +232,39 @@ and user interjections needed to continue. No hidden workspace state file is
 created in the first release.
 
 Within the same live task, the skill may reconstruct an unavailable subagent with
-the same role, persona, effective model, topic, and prior summaries, and tells the
-user that the member was rebuilt. Recovery after an app restart or runtime reset
-is best-effort and is not a v1 acceptance requirement. The plugin does not claim
-recovery of an in-flight request or a previous agent's private context.
+the same role, persona, successful runtime model policy, topic, and prior
+summaries under a fresh generation, and tells the user that the member was rebuilt.
+Recovery after an app restart or runtime reset is best-effort and is not a v1
+acceptance requirement. The plugin does not claim recovery of an in-flight request
+or a previous agent's private context.
 
 ## Failure Handling
 
 ### Model unavailable
 
 If a selected model is accepted by the tool schema but cannot start, retry the
-member once with the model override omitted so the host resolves its inherited
-default. Announce the fallback. Record the effective model when the runtime
-reports it; otherwise record `inherited default` rather than guessing a model ID.
+member once on a fresh generation with the model override omitted. Announce the
+fallback. Keep the configured explicit model separate, persist the successful
+runtime policy as host default so later reconstruction does not retry the known-
+failing model, and record `host default` unless the runtime reports an exact
+effective identifier.
 
 ### Member failure
 
-If the fallback attempt also fails, pause the round and ask the user to retry,
-skip that member, or terminate. Never convert an empty, cancelled, or failed
-result into a normal contribution.
+If a host-default start or explicit fallback fails, pause the round and ask the
+user to retry, skip that member, or terminate. Retry uses a fresh generation and
+does not retry a known-failing explicit model. Never convert an empty, cancelled,
+or failed result into a normal contribution.
 
 ### User interjection
 
-If the user sends a message while a round is running, preserve it as an explicit
-human interjection. Incorporate it into the next member prompt when safe; if the
-current member has already completed, incorporate it into the next member or next
-round. Do not silently discard it.
+Classify in-flight intent before treating it as an opinion. `cancel`/`取消`
+interrupts when supported, ignores late output, records a partial round and exits
+without export. `terminate`/`终止` does the same but exports partial minutes.
+Ambiguous `stop`/`停止` interrupts first and asks which outcome the user wants.
+Other messages are preserved as untrusted human interjections for the next safe
+member or round. When interruption is unavailable, disclose that and ignore late
+output for the interrupted round.
 
 ### Partial round
 
@@ -253,6 +288,8 @@ an output path that was not verified.
 - The main host is the only agent allowed to write the meeting-minutes artifact.
 - A member receives only the current customer/workspace context needed for the
   discussion.
+- Topic, persona, summaries, interjections, and earlier contributions are
+  delimited as untrusted data and cannot override the analysis-only contract.
 - The skill does not send data to an external service beyond the models and tools
   already selected in Codex.
 - The skill does not create new top-level Codex tasks; member work uses native
@@ -264,8 +301,10 @@ an output path that was not verified.
 
 The existing DSH-oriented standalone skill uses the same `roundtable` name and is
 not compatible with the Codex-native plugin. Before local installation, the README
-and acceptance checklist require a preflight check for an existing
-`~/.agents/skills/roundtable/SKILL.md` or another visible skill with the same name.
+and acceptance checklist inspect both standard standalone roots,
+`~/.agents/skills/roundtable` and `${CODEX_HOME:-~/.codex}/skills/roundtable`, and
+require every visible same-name entry to be inspected and disabled or moved when
+it conflicts.
 
 If a legacy skill is found:
 
@@ -278,11 +317,16 @@ If a legacy skill is found:
 
 The Git repository root is the distributable plugin root, but the personal
 marketplace uses its conventional managed source location. Local testing therefore
-creates or refreshes a generated personal-marketplace copy at
-`~/plugins/roundtable` from the repository root; the marketplace entry points to
-that managed copy rather than directly to the development checkout. Updates use
-the plugin creator's cachebuster and reinstall flow instead of hand-editing
-marketplace metadata.
+creates or refreshes a generated personal-marketplace copy at the exactly guarded
+`~/plugins/roundtable` target from the repository root; the marketplace entry
+points to that managed copy rather than directly to the development checkout.
+First installation and updates guard the exact target against symlinks and use
+scoped `rsync -a --delete --delete-excluded`
+with source-only exclusions, then assert that `hooks/`, `.mcp.json`, `.app.json`,
+manifest `mcpServers`, and manifest `apps` are absent. Updates use the plugin
+creator's cachebuster and reinstall flow instead of hand-editing marketplace
+metadata. These shell instructions are scoped to macOS/Linux and list Bash,
+`rsync`, `rg`, Codex CLI, Python 3, and PyYAML prerequisites.
 
 The README documents the source-to-managed-copy installation command,
 refresh/reinstall flow, legacy-skill migration, and a fresh-task smoke test.
@@ -301,9 +345,13 @@ installation.
   DSH-only tools.
 
 `tests/acceptance.md` is a manual, evidence-bearing checklist. Each run records the
-Codex surface, task identifier, date, effective model behavior, and observed
-result. The first release does not claim an automated harness for host-level
-subagent failures.
+Codex surface, non-sensitive alias, date, tested source commit, installed
+cachebuster/version, effective model behavior, and observed result. Behavioral
+acceptance remains partial until reset behavior is rerun against the current
+source. Artifact creation and collision/non-overwrite behavior are separate
+checks. Unsupported no-enum behavior remains unchecked with N/A evidence rather
+than being promoted to a pass. The first release does not claim an automated
+harness for host-level subagent failures.
 
 ### Behavioral scenarios
 
@@ -317,18 +365,21 @@ Test the installed plugin in fresh Codex tasks with these scenarios:
 5. On a host that exposes an explicit model enum, select an available non-default
    model.
 6. On a host without an explicit model enum, verify that the wizard offers only
-   the inherited default and does not solicit a free-form identifier.
+   `Host default (no model override)` and does not solicit a free-form identifier.
 7. Run a full round and verify fixed speaking order.
 8. Interject between members and verify propagation.
 9. Continue to a second round and verify either member reuse or an explicitly
    reported replacement with canonical context.
 10. Where the test host exposes a schema-valid but unavailable model, verify the
-    inherited-model retry. Otherwise record this branch as not applicable rather
-    than fabricating a failure.
-11. Interrupt or cancel a member run and exercise retry, skip, and terminate.
+    fresh-target host-default retry and persistent runtime policy. Otherwise record
+    this branch as not applicable rather than fabricating a failure.
+11. Exercise cancel, terminate, and ambiguous-stop steering during a member run,
+    including interruption, late-output suppression, partial records, and export
+    differences.
 12. Verify ordered live commentary when supported, inspectable member threads,
     and the consolidated ordered transcript in the round response.
-13. Terminate and verify the Markdown file contents and reported path.
+13. Terminate and verify the Markdown file contents and reported path; separately
+    create a collision and verify the existing file is unchanged and a suffix is used.
 14. Run on a surface without structured input cards and complete the plain-chat
     fallback.
 15. Run the legacy-skill preflight and verify that a duplicate skill is reported
@@ -347,8 +398,10 @@ The implementation is accepted when:
 - its executable skill instructions contain no calls to the DSH-only
   `ask_user_question`, `roundtable`, `roundtable_models`, or `roundtable_title`
   tools;
-- each member is a real Codex subagent with the chosen persona and either a
-  schema-exposed selected model or the inherited default;
+- each member is a real Codex subagent with a safe persona and either a
+  schema-exposed selected model or host default with no override;
+- every spawn has minimal history or obtains explicit user consent when the host
+  cannot guarantee it, and fresh generation targets prevent same-target retry;
 - member agents follow the analysis-only contract and the plugin does not claim a
   hard isolation boundary;
 - speaking order, multi-round continuation, model fallback, and user
@@ -356,11 +409,13 @@ The implementation is accepted when:
 - every completed round includes an ordered transcript in the main response; no
   acceptance criterion requires one permanent main-task message per member;
 - the exported minutes pass a format review and the output path exists;
-- validation and applicable fresh-task installation tests pass, with unsupported
-  host-specific failure branches recorded as not applicable.
+- structural validation passes; current behavioral acceptance is described as
+  partial until applicable reset checks pass, with unsupported host-specific
+  branches left unchecked and recorded as not applicable.
 
 ## Release Strategy
 
-The first release is an independent MIT-licensed GitHub repository and a local
-skills-only plugin suitable for personal-marketplace testing. Public marketplace
+The first release is an independent MIT-licensed project and a local skills-only
+plugin suitable for personal-marketplace testing. The declared GitHub repository
+URL must be created and verified before public publication. Public marketplace
 submission is a later release step after representative behavioral tests pass.

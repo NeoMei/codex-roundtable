@@ -8,27 +8,43 @@ Inspired by [NeoMei/dsh-roundtable](https://github.com/NeoMei/dsh-roundtable), r
 
 - Complete topic and member setup wizard.
 - One real Codex subagent per member execution.
-- Runtime-safe model selection with inherited-model fallback.
+- Runtime-safe model selection with host-default fallback.
 - Ordered multi-round discussion and user interjections.
 - Neutral host summaries and verified Markdown export.
 - Plain-chat fallback when structured input cards are unavailable.
 
 ## Requirements
 
+- Installation commands below support macOS and Linux and require Bash.
 - A current Codex release with subagents enabled.
+- The Codex CLI, `rsync`, and `rg` on `PATH`.
 - A writable workspace to save minutes. Without one, the plugin returns Markdown in chat.
 - Installed models and permissions are determined by the active Codex host.
 - Python 3 with [PyYAML](https://pyyaml.org/) installed for the bundled validation scripts.
 
 ## Install for local development
 
-This repository root is the distributable plugin root. Before installing, run the legacy-skill check below. Then use the bundled plugin-creator workflow to create the personal marketplace entry and managed copy, synchronize this checkout, validate it, and install it using the marketplace's configured name:
+This repository root is the distributable plugin root. Before installing, run the legacy-skill check below. For a first installation, use the bundled plugin-creator workflow to generate the exact personal-marketplace target. If that target already exists, inspect it and use the update flow below; do not force or overwrite an unrelated directory.
 
 ```bash
+source_plugin_root="$(git rev-parse --show-toplevel)"
+managed_plugin_root="$HOME/plugins/roundtable"
 plugin_creator_root="${CODEX_HOME:-$HOME/.codex}/skills/.system/plugin-creator"
+test "$managed_plugin_root" = "$HOME/plugins/roundtable" || exit 1
+test ! -L "$managed_plugin_root" || exit 1
 python3 "$plugin_creator_root/scripts/create_basic_plugin.py" roundtable --with-skills --with-marketplace
-rsync -a --exclude '.git' --exclude '.superpowers/' --exclude 'docs/superpowers/' ./ "$HOME/plugins/roundtable/"
-python3 "$plugin_creator_root/scripts/validate_plugin.py" "$HOME/plugins/roundtable"
+test -f "$managed_plugin_root/.codex-plugin/plugin.json" || exit 1
+rsync -a --delete --delete-excluded \
+  --exclude '/.git' \
+  --exclude '/.superpowers/' \
+  --exclude '/docs/superpowers/' \
+  "$source_plugin_root/" \
+  "$managed_plugin_root/"
+test ! -e "$managed_plugin_root/hooks" || exit 1
+test ! -e "$managed_plugin_root/.mcp.json" || exit 1
+test ! -e "$managed_plugin_root/.app.json" || exit 1
+if rg -n '"(mcpServers|apps)"[[:space:]]*:' "$managed_plugin_root/.codex-plugin/plugin.json"; then exit 1; fi
+python3 "$plugin_creator_root/scripts/validate_plugin.py" "$managed_plugin_root"
 marketplace_name="$(python3 "$plugin_creator_root/scripts/read_marketplace_name.py")"
 codex plugin add "roundtable@$marketplace_name"
 ```
@@ -38,10 +54,24 @@ Treat `~/plugins/roundtable` as generated installation state; source changes bel
 For subsequent local updates, synchronize the checkout, refresh the managed copy's cachebuster, validate it, read the marketplace name, and reinstall:
 
 ```bash
+source_plugin_root="$(git rev-parse --show-toplevel)"
+managed_plugin_root="$HOME/plugins/roundtable"
 plugin_creator_root="${CODEX_HOME:-$HOME/.codex}/skills/.system/plugin-creator"
-rsync -a --exclude '.git' --exclude '.superpowers/' --exclude 'docs/superpowers/' ./ "$HOME/plugins/roundtable/"
-python3 "$plugin_creator_root/scripts/update_plugin_cachebuster.py" "$HOME/plugins/roundtable"
-python3 "$plugin_creator_root/scripts/validate_plugin.py" "$HOME/plugins/roundtable"
+test "$managed_plugin_root" = "$HOME/plugins/roundtable" || exit 1
+test ! -L "$managed_plugin_root" || exit 1
+test -f "$managed_plugin_root/.codex-plugin/plugin.json" || exit 1
+rsync -a --delete --delete-excluded \
+  --exclude '/.git' \
+  --exclude '/.superpowers/' \
+  --exclude '/docs/superpowers/' \
+  "$source_plugin_root/" \
+  "$managed_plugin_root/"
+test ! -e "$managed_plugin_root/hooks" || exit 1
+test ! -e "$managed_plugin_root/.mcp.json" || exit 1
+test ! -e "$managed_plugin_root/.app.json" || exit 1
+if rg -n '"(mcpServers|apps)"[[:space:]]*:' "$managed_plugin_root/.codex-plugin/plugin.json"; then exit 1; fi
+python3 "$plugin_creator_root/scripts/update_plugin_cachebuster.py" "$managed_plugin_root"
+python3 "$plugin_creator_root/scripts/validate_plugin.py" "$managed_plugin_root"
 marketplace_name="$(python3 "$plugin_creator_root/scripts/read_marketplace_name.py")"
 codex plugin add "roundtable@$marketplace_name"
 ```
@@ -50,16 +80,23 @@ Use a fresh Codex task after every install or update so Codex discovers the refr
 
 ### Legacy skill migration
 
-An older standalone `roundtable` skill may still depend on DeepSeek Harness tools. Check:
+An older standalone `roundtable` skill may still depend on DeepSeek Harness tools. Inspect both standard standalone roots and report every visible entry:
 
 ```bash
-legacy_roundtable_skill="$HOME/.agents/skills/roundtable/SKILL.md"
-if test -f "$legacy_roundtable_skill"; then
-  rg -n 'roundtable_models|roundtable_title|ask_user_question' "$legacy_roundtable_skill"
-fi
+codex_home_root="${CODEX_HOME:-$HOME/.codex}"
+legacy_roundtable_roots=(
+  "$HOME/.agents/skills/roundtable"
+  "$codex_home_root/skills/roundtable"
+)
+for legacy_roundtable_root in "${legacy_roundtable_roots[@]}"; do
+  if test -f "$legacy_roundtable_root/SKILL.md"; then
+    printf 'standalone roundtable skill found: %s\n' "$legacy_roundtable_root"
+    rg -n 'roundtable_models|roundtable_title|ask_user_question' "$legacy_roundtable_root/SKILL.md" || true
+  fi
+done
 ```
 
-If matches appear, disable that exact skill path in `~/.codex/config.toml` or move it outside Codex skill roots before installing this plugin. Do not overwrite or delete it silently.
+Inspect every reported standalone `roundtable` entry. Disable each conflicting exact skill directory in `~/.codex/config.toml` or move it outside Codex skill roots before installing this plugin. Do not overwrite or delete it silently.
 
 Example disable entry:
 
@@ -85,7 +122,7 @@ Natural language:
 圆桌讨论：这个产品是否应该转向企业市场？
 ```
 
-Member model choices are limited to identifiers explicitly exposed by the active Codex spawn tool; otherwise members inherit the current task model.
+Member model choices are limited to identifiers explicitly exposed by the active Codex spawn tool; otherwise members use `Host default (no model override)`. The plugin makes no model-equivalence claim across host and member tasks.
 
 ## Output
 
@@ -108,6 +145,8 @@ python3 "$plugin_creator_root/scripts/validate_plugin.py" .
 ```
 
 Run [tests/acceptance.md](tests/acceptance.md) in a fresh task before publishing.
+
+The manifest declares `https://github.com/NeoMei/codex-roundtable`, but this local workflow does not create a GitHub repository or remote. Create and verify that repository URL separately before any public publication.
 
 ## License
 
