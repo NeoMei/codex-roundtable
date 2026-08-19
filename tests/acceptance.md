@@ -23,7 +23,7 @@ Append one evidence line per run with local date, Codex surface, non-sensitive t
 - [x] Custom role can be added.
 - [ ] Logical eight-member limit is enforced while one member runs at a time.
 - [x] Host with a model enum permits an explicit non-default model, or is NOT-APPLICABLE.
-- [x] Host without a model enum offers inherited default only, or is NOT-APPLICABLE.
+- [ ] Host without a model enum offers inherited default only, or is NOT-APPLICABLE.
 - [x] Members speak in confirmed roster order.
 - [x] Member output appears as ordered live commentary when supported.
 - [x] Round response contains the complete ordered transcript.
