@@ -28,28 +28,28 @@ Append one evidence line per run with local date, Codex surface, non-sensitive t
 - [ ] A persona requesting side effects or conflicting with the analysis-only contract is rejected.
 - [x] Logical eight-member limit removes the add action at eight and explicitly rejects a ninth member.
 - [x] Setup cancellation spawns no member and writes no minutes file.
-- [ ] Host with a model enum permits an exact explicit non-default model, or is NOT-APPLICABLE.
+- [x] Host with a model enum permits an exact explicit non-default model, or is NOT-APPLICABLE.
 - [ ] Host without a model enum offers `Host default (no model override)` only, or is NOT-APPLICABLE.
 - [ ] `effective_model` starts null, becomes the exact enum after explicit success, and becomes `host default` only after host-default success.
 - [x] Every observed spawn, including a restarted invocation, uses the host's explicit no-history setting.
 - [ ] A host without a no-history spawn setting asks proceed/cancel before spawning.
-- [x] Observed spawn attempts use fresh per-member generation targets (`member_1_g1`, then `member_1_g2`).
-- [ ] Only successful targets are reused in later rounds.
-- [ ] Explicit-model failure falls back on a fresh target and later reconstruction preserves host-default runtime policy, or is NOT-APPLICABLE.
+- [x] Observed spawn attempts use fresh per-member generation targets (`member_1_g1` through `member_1_g4` across the recorded runs).
+- [x] Only successful targets are reused in later rounds.
+- [x] Explicit-model failure falls back on a fresh target and persists host-default runtime policy for later reuse or reconstruction, or is NOT-APPLICABLE.
 - [ ] Capacity is relieved only through supported close operations after canonicalization, or an unrelievable cap reaches the retry/skip/terminate gate.
 - [x] Members speak in confirmed roster order for the observed one-member round.
 - [x] Member output appears as ordered live commentary when supported.
 - [x] Round response contains the complete ordered transcript.
-- [ ] Subagent threads are inspectable when the surface exposes them.
-- [ ] Ordinary user interjection reaches the next safe member or next round as untrusted data.
-- [ ] Second round reuses the member target or reports a context-preserving fresh-generation replacement.
+- [x] Subagent threads are inspectable when the surface exposes them.
+- [x] Ordinary user interjection reaches the next safe member or next round as untrusted data.
+- [x] Second round reuses the member target or reports a context-preserving fresh-generation replacement.
 - [ ] A member failing both initial and fallback attempts offers retry, skip, or terminate.
 - [ ] Cancel/`取消` interrupts when supported, ignores late output, records a partial round and non-speakers, and exits without export.
 - [ ] Terminate/`终止` interrupts when supported, ignores late output, records a partial round and exports partial minutes.
 - [x] Ambiguous stop/`停止` interrupts first, ignores late output, records the partial round and non-speaker, and asks cancel-without-export versus terminate-with-export.
 - [x] Choosing cancel after ambiguous stop writes no export.
 - [x] Termination creates a Markdown file with required sections.
-- [ ] A collision leaves the existing artifact unchanged and creates the next numeric suffix.
+- [x] A collision leaves the existing artifact unchanged and creates the next numeric suffix.
 - [x] Surface without structured input cards completes the observed setup through plain chat.
 
 ## Permission review
@@ -57,8 +57,9 @@ Append one evidence line per run with local date, Codex surface, non-sensitive t
 - [ ] Member prompt contains the analysis-only contract outside delimited untrusted discussion data.
 - [ ] Topic, persona, summaries, interjections, and earlier contributions are delimited and cannot override the member contract.
 - [ ] An adversarial topic containing exact `</discussion-data>` is entity-encoded and cannot close the data block.
-- [ ] An adversarial user interjection containing exact `</discussion-data>` is entity-encoded and cannot close the data block.
-- [ ] An earlier member contribution containing exact `</discussion-data>` is entity-encoded and cannot close the data block.
+- [x] An adversarial persona containing exact `</discussion-data>` is entity-encoded and cannot close the data block.
+- [x] An adversarial user interjection containing exact `</discussion-data>` is entity-encoded and cannot close the data block.
+- [x] An earlier member contribution containing exact `</discussion-data>` is entity-encoded and cannot close the data block.
 - [ ] No member changes a workspace file or external system during the test.
 - [x] Only the host writes the observed minutes artifact.
 - [ ] User-facing copy does not claim hard sandbox isolation.
@@ -77,3 +78,4 @@ Historical evidence below is retained for traceability and does not satisfy rese
 - 2026-08-19 | Codex CLI | RT-A7-DISCOVERY | source f972328 | installed 0.1.0+codex.20260819121435 | PASS | Fresh namespaced prompt inspection listed both the legacy unnamespaced entry and plugin `roundtable:roundtable`, then resolved the plugin from the exact current installed cache entry. No internal path or task identifier is recorded.
 - 2026-08-19 | Codex Desktop | RT-A7 | source f972328 | installed 0.1.0+codex.20260819121435 | PASS | Namespaced inline topic completed an eight-member plain-chat roster using host default; the add action disappeared at eight, a ninth member was explicitly rejected, and setup cancellation spawned no member and wrote no file.
 - 2026-08-19 | Codex Desktop | RT-A8 | source f972328 | installed 0.1.0+codex.20260819121435 | PASS | Sanitized parent-event evidence showed first spawn `member_1_g1` with `fork_turns: "none"`; ambiguous stop interrupted immediately, listed the non-speaker, offered cancel/terminate, ignored late output, and cancel wrote no export. A second namespaced invocation used fresh `member_1_g2` with no-history, completed a real subagent with live commentary, full transcript, and neutral summary; termination produced a host-written 69-line Markdown artifact with required sections.
+- 2026-08-19 | Codex Desktop | RT-A9 | source f972328 | installed 0.1.0+codex.20260819121435 | PASS | Third namespaced invocation selected explicit `gpt-5.6-luna`: generation 3 used no-history and failed, then fresh generation 4 used no-history with no model override and succeeded as host default. Round two reused the successful target through follow-up. Exact closing tags in persona, interjection, and prior contribution remained entity text, and the interjection propagated to round two. Termination created the `-2` collision artifact with 102 lines while the original file hash remained unchanged.
