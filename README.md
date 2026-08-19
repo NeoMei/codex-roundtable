@@ -36,18 +36,32 @@ This repository root is the distributable plugin root. Before installing, run th
   test "$managed_plugin_root" = "$HOME/plugins/roundtable"
   test ! -e "$managed_plugin_root"
   test ! -L "$managed_plugin_root"
-  python3 -c 'import json,sys; assert json.load(open(sys.argv[1]))["name"] == "roundtable"' "$source_manifest"
   python3 "$plugin_creator_root/scripts/create_basic_plugin.py" roundtable --with-skills --with-marketplace
   managed_manifest="$managed_plugin_root/.codex-plugin/plugin.json"
   test -f "$managed_manifest"
   test ! -e "$managed_plugin_root/.git"
-  python3 -c 'import json,sys; assert all(json.load(open(path))["name"] == "roundtable" for path in sys.argv[1:])' "$source_manifest" "$managed_manifest"
   rsync -a --delete --delete-excluded \
     --exclude '/.git' \
     --exclude '/.superpowers/' \
     --exclude '/docs/superpowers/' \
     "$source_plugin_root/" \
     "$managed_plugin_root/"
+  python3 - "$source_manifest" "$managed_manifest" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as source_file:
+    source = json.load(source_file)
+with open(sys.argv[2], encoding="utf-8") as managed_file:
+    managed = json.load(managed_file)
+if source.get("name") != "roundtable" or managed.get("name") != "roundtable":
+    raise SystemExit("source and managed plugin names must both be roundtable")
+source_repository = source.get("repository")
+if not isinstance(source_repository, str) or not source_repository.strip():
+    raise SystemExit("source repository must be a non-empty string")
+if managed.get("repository") != source_repository:
+    raise SystemExit("managed repository must exactly match source repository")
+PY
   test ! -e "$managed_plugin_root/hooks"
   test ! -e "$managed_plugin_root/.mcp.json"
   test ! -e "$managed_plugin_root/.app.json"
@@ -74,7 +88,22 @@ For subsequent local updates, synchronize the checkout, refresh the managed copy
   test ! -L "$managed_plugin_root"
   test -f "$managed_manifest"
   test ! -e "$managed_plugin_root/.git"
-  python3 -c 'import json,sys; assert all(json.load(open(path))["name"] == "roundtable" for path in sys.argv[1:])' "$source_manifest" "$managed_manifest"
+  python3 - "$source_manifest" "$managed_manifest" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as source_file:
+    source = json.load(source_file)
+with open(sys.argv[2], encoding="utf-8") as managed_file:
+    managed = json.load(managed_file)
+if source.get("name") != "roundtable" or managed.get("name") != "roundtable":
+    raise SystemExit("source and managed plugin names must both be roundtable")
+source_repository = source.get("repository")
+if not isinstance(source_repository, str) or not source_repository.strip():
+    raise SystemExit("source repository must be a non-empty string")
+if managed.get("repository") != source_repository:
+    raise SystemExit("managed repository must exactly match source repository")
+PY
   rsync -a --delete --delete-excluded \
     --exclude '/.git' \
     --exclude '/.superpowers/' \

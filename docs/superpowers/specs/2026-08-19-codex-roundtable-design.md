@@ -326,8 +326,11 @@ points to that managed copy rather than directly to the development checkout.
 Both command blocks run in fail-fast Bash subshells with `set -euo pipefail`.
 First installation requires the exact target to be absent. Before an update can
 reach `rsync --delete`, it verifies the exact path, rejects symlinks and Git
-checkouts, and parses both source and destination manifests to require the exact
-plugin name `roundtable`. The guarded flow then uses scoped
+checkouts, and parses both source and destination manifests with explicit
+`SystemExit` failures: both names must be exactly `roundtable`, the source
+repository must be non-empty, and the destination repository must equal it
+exactly. First installation performs the same identity comparison immediately
+after synchronizing its newly generated target. The guarded flow uses scoped
 `rsync -a --delete --delete-excluded` with source-only exclusions and asserts that `hooks/`, `.mcp.json`, `.app.json`,
 manifest `mcpServers`, and manifest `apps` are absent. Updates use the plugin
 creator's cachebuster and reinstall flow instead of hand-editing marketplace
