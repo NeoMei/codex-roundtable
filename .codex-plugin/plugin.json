@@ -8,7 +8,6 @@
   },
   "homepage": "https://github.com/NeoMei/codex-roundtable",
   "repository": "https://github.com/NeoMei/codex-roundtable",
-  "license": "MIT",
   "keywords": ["roundtable", "multi-agent", "discussion", "meeting-minutes"],
   "skills": "./skills/",
   "interface": {
